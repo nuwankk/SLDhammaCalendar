@@ -14,6 +14,7 @@ type CalendarEvent = {
   location?: string
   start?: { dateTime?: string; date?: string }
   end?: { dateTime?: string; date?: string }
+  attachments?: Array<{ fileUrl?: string; mimeType?: string }>
 }
 
 export async function loadSermons(): Promise<{ sermons: Sermon[]; source: 'google' | 'sample' }> {
@@ -83,6 +84,7 @@ function fromGoogleEvent(event: CalendarEvent): Sermon | null {
     descriptionSi: readField(description, 'Description-SI') ?? stripFields(description, 'si'),
     livestreamUrl,
     location: event.location?.trim() || undefined,
+    speakerPhoto: readSpeakerPhoto(event, description),
     source: 'google',
   }
 }
@@ -163,6 +165,15 @@ function parseLanguage(description: string, title: string): Language {
   return 'Sinhala'
 }
 
+function readSpeakerPhoto(event: CalendarEvent, description: string) {
+  const field = readField(description, 'Speaker-Photo')
+  if (field && /^https?:\/\//i.test(field)) return field
+  const image = event.attachments?.find(
+    (item) => item.fileUrl && item.mimeType?.startsWith('image/'),
+  )
+  return image?.fileUrl
+}
+
 function readField(description: string, label: string) {
   const match = description.match(new RegExp(`${label}\\s*:\\s*(.+)`, 'i'))
   return match?.[1]?.trim().split('\n')[0]
@@ -170,7 +181,7 @@ function readField(description: string, label: string) {
 
 function stripFields(description: string, script: 'en' | 'si') {
   const stripped = description
-    .replace(/^(Language|Speaker|Speaker-SI|Title-SI|Description-SI|Livestream|Attendance)\s*:.*$/gim, '')
+    .replace(/^(Language|Speaker|Speaker-SI|Title-SI|Description-SI|Livestream|Attendance|Speaker-Photo)\s*:.*$/gim, '')
     .trim()
   if (!stripped) return undefined
   if (script === 'si') return /[\u0D80-\u0DFF]/.test(stripped) ? stripped : undefined

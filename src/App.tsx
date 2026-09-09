@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { lookupSpeakerPhoto } from './data/speakers'
 import { venuesById } from './data/venues'
 import { loadSermons } from './lib/calendar'
 import {
@@ -393,21 +394,42 @@ function SermonCard({
   const inPerson = isInPerson(sermon.attendance)
   return (
     <li className="card">
-      <div className="card-top">
-        <div className="when">
-          <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
-          <AttendanceMarks sermon={sermon} />
+      <div className="card-head">
+        <SpeakerPhoto sermon={sermon} />
+        <div className="card-top">
+          <div className="when">
+            <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
+            <AttendanceMarks sermon={sermon} />
+          </div>
+          {sermon.distanceKm !== undefined ? (
+            <p className="distance-badge">{formatDistance(sermon.distanceKm)}</p>
+          ) : inPerson ? (
+            <button type="button" className="distance-badge ask-location" onClick={onRequestLocation}>
+              Show distance
+            </button>
+          ) : null}
         </div>
-        {sermon.distanceKm !== undefined ? (
-          <p className="distance-badge">{formatDistance(sermon.distanceKm)}</p>
-        ) : inPerson ? (
-          <button type="button" className="distance-badge ask-location" onClick={onRequestLocation}>
-            Show distance
-          </button>
-        ) : null}
       </div>
       <SermonSplit sermon={sermon} heading="h3" />
     </li>
+  )
+}
+
+function SpeakerPhoto({ sermon }: { sermon: LocatedSermon }) {
+  const src = sermon.speakerPhoto ?? lookupSpeakerPhoto(sermon.speaker)
+  const [broken, setBroken] = useState(false)
+  if (!src || broken) return null
+  return (
+    <img
+      className="speaker-photo"
+      src={src}
+      alt=""
+      title={sermon.speaker}
+      width={56}
+      height={56}
+      loading="lazy"
+      onError={() => setBroken(true)}
+    />
   )
 }
 
