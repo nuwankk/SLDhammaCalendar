@@ -66,6 +66,7 @@ export type Venue = {
   id: string
   name: string
   nameSi?: string
+  aliases?: string[]
   city: string
   district: District
   lat: number

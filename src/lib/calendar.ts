@@ -57,7 +57,7 @@ function fromGoogleEvent(event: CalendarEvent): Sermon | null {
   const livestreamUrl = readField(description, 'Livestream')
   const attendanceHint = parseAttendanceField(readField(description, 'Attendance'))
   const remote = attendanceHint === 'livestream' || isRemoteLocation(event.location ?? '')
-  const venue = remote ? undefined : matchVenue(event.location ?? event.summary)
+  const venue = remote ? undefined : matchVenue(event.location ?? '', `${event.summary ?? ''}\n${description}`)
   const attendance = inferAttendance({
     attendance: attendanceHint,
     livestreamUrl,
@@ -94,24 +94,60 @@ function splitTitle(summary: string) {
   return { title: summary, titleSi: undefined }
 }
 
-function matchVenue(location: string) {
-  const haystack = normalize(location)
-  const byName = venues.find((venue) => {
-    return (
-      haystack.includes(normalize(venue.name)) ||
-      (venue.nameSi !== undefined && haystack.includes(normalize(venue.nameSi)))
-    )
-  })
-  if (byName) return byName
+const GENERIC_TOKENS = new Set([
+  'temple',
+  'center',
+  'centre',
+  'buddhist',
+  'meditation',
+  'international',
+  'raja',
+  'maha',
+  'vihara',
+  'viharaya',
+  'rajamaha',
+  'sri',
+])
 
-  const byToken = venues.find((venue) => {
-    const tokens = [venue.name, venue.nameSi]
-      .filter((value): value is string => Boolean(value))
-      .flatMap((value) => normalize(value).split(' '))
-      .filter((token) => token.length >= 8)
-    return tokens.some((token) => haystack.includes(token))
-  })
-  return byToken ?? venues.find((venue) => haystack.includes(normalize(venue.city)))
+const cityTokens = new Set(venues.map((venue) => normalize(venue.city)))
+
+export function matchVenue(location: string, extra = '') {
+  const fromLocation = bestVenue(location)
+  if (fromLocation && fromLocation.score >= 50) return fromLocation.venue
+  const fromAll = bestVenue(`${location} ${extra}`)
+  if (fromAll && fromAll.score >= 50) return fromAll.venue
+  return fromLocation?.venue ?? fromAll?.venue
+}
+
+function bestVenue(text: string) {
+  const haystack = normalize(text)
+  if (!haystack) return undefined
+
+  let best: { venue: (typeof venues)[number]; score: number } | undefined
+  for (const venue of venues) {
+    const score = scoreVenue(venue, haystack)
+    if (score > 0 && (!best || score > best.score)) best = { venue, score }
+  }
+  if (best?.score === 1) {
+    const cityHits = venues.filter((venue) => scoreVenue(venue, haystack) === 1)
+    if (cityHits.length !== 1) return undefined
+  }
+  return best
+}
+
+function scoreVenue(venue: (typeof venues)[number], haystack: string) {
+  const names = [venue.name, venue.nameSi, ...(venue.aliases ?? [])].filter(
+    (value): value is string => Boolean(value),
+  )
+  if (names.some((name) => haystack.includes(normalize(name)))) return 100
+
+  const tokens = names
+    .flatMap((name) => normalize(name).split(' '))
+    .filter((token) => token.length >= 6 && !GENERIC_TOKENS.has(token) && !cityTokens.has(token))
+  const hit = tokens.find((token) => haystack.includes(token))
+  if (hit) return 50 + hit.length
+
+  return haystack.includes(normalize(venue.city)) ? 1 : 0
 }
 
 function parseLanguage(description: string, title: string): Language {
