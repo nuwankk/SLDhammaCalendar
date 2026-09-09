@@ -125,6 +125,7 @@ export function htmlToText(value: string) {
     .replace(/<a\s+[^>]*href\s*=\s*["']([^"']+)["'][^>]*>[\s\S]*?<\/a>/gi, '$1')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/gi, ' ')
+    .replace(/\u00a0/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -188,11 +189,23 @@ function parseLanguage(description: string, title: string): Language {
 
 function readSpeakerPhoto(event: CalendarEvent, description: string) {
   const field = readField(description, 'Speaker-Photo')
-  if (field && /^https?:\/\//i.test(field)) return field
+  const fromField = field ? imageSrc(field) : undefined
+  if (fromField) return fromField
   const image = event.attachments?.find(
     (item) => item.fileUrl && item.mimeType?.startsWith('image/'),
   )
-  return image?.fileUrl
+  return image?.fileUrl ? imageSrc(image.fileUrl) : undefined
+}
+
+function imageSrc(value: string) {
+  const url = value.match(/https?:\/\/[^\s<>"']+/i)?.[0]?.replace(/[),.;]+$/, '')
+  if (!url) return undefined
+  const driveId =
+    url.match(/drive\.google\.com\/file\/d\/([^/]+)/)?.[1] ??
+    url.match(/drive\.google\.com\/open\?id=([^&]+)/)?.[1] ??
+    (url.includes('drive.google.com') ? url.match(/[?&]id=([^&]+)/)?.[1] : undefined)
+  if (driveId) return `https://drive.google.com/thumbnail?id=${driveId}&sz=w200`
+  return url
 }
 
 function readField(description: string, label: string) {

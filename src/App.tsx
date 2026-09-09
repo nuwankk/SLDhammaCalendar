@@ -428,6 +428,7 @@ function SpeakerPhoto({ sermon }: { sermon: LocatedSermon }) {
       width={64}
       height={64}
       loading="lazy"
+      referrerPolicy="no-referrer"
       onError={() => setBroken(true)}
     />
   )
