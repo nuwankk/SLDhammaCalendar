@@ -1,37 +1,33 @@
 import { useEffect, useMemo, useState } from 'react'
-import { cities } from './data/cities'
 import { venuesById } from './data/venues'
 import { loadSermons } from './lib/calendar'
 import {
+  colomboDateKey,
   endOfMonth,
   endOfWeek,
+  formatMonthTitle,
+  formatTime,
   formatWhen,
-  googleCalendarUrl,
   mapsUrl,
 } from './lib/format'
-import { cityNameSi, languageSi, regionSi } from './lib/labels'
-import { distanceKm, formatDistance, pickRadius } from './lib/geo'
-import type { Coords, Language, LocatedSermon, Region, Sermon } from './types'
+import { cityNameSi, districtSi, languageSi } from './lib/labels'
+import { distanceKm, formatDistance, formatDistanceSi } from './lib/geo'
+import {
+  districts,
+  type Coords,
+  type District,
+  type Language,
+  type LocatedSermon,
+  type Sermon,
+} from './types'
 
-type OriginStatus = 'pending' | 'granted' | 'denied'
 type WhenFilter = 'upcoming' | 'week' | 'month'
-type SortMode = 'nearest' | 'soonest'
-type Radius = number | 'all'
+type ViewMode = 'calendar' | 'list'
+type LocationStatus = 'idle' | 'pending' | 'granted' | 'denied' | 'unavailable'
 
 const languages: Array<Language | 'all'> = ['all', 'Sinhala', 'English', 'Tamil', 'Pali', 'Mixed']
-const regions: Array<Region | 'all'> = [
-  'all',
-  'Western',
-  'Central',
-  'Southern',
-  'Northern',
-  'Eastern',
-  'North Western',
-  'North Central',
-  'Uva',
-  'Sabaragamuwa',
-]
-const radiusOptions: Radius[] = [10, 25, 50, 100, 'all']
+const districtOptions: Array<District | 'all'> = ['all', ...districts]
+const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 export default function App() {
   const [sermons, setSermons] = useState<Sermon[]>([])
@@ -40,15 +36,34 @@ export default function App() {
   const [loading, setLoading] = useState(true)
 
   const [coords, setCoords] = useState<Coords | null>(null)
-  const [originStatus, setOriginStatus] = useState<OriginStatus>('pending')
-  const [cityId, setCityId] = useState('')
-
-  const [query, setQuery] = useState('')
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle')
   const [language, setLanguage] = useState<Language | 'all'>('all')
-  const [region, setRegion] = useState<Region | 'all'>('all')
+  const [district, setDistrict] = useState<District | 'all'>('all')
   const [when, setWhen] = useState<WhenFilter>('upcoming')
-  const [radiusOverride, setRadiusOverride] = useState<Radius | null>(null)
-  const [sortOverride, setSortOverride] = useState<SortMode | null>(null)
+  const [view, setView] = useState<ViewMode>('calendar')
+  const [cursor, setCursor] = useState(() => {
+    const now = new Date()
+    return { year: now.getFullYear(), month: now.getMonth() }
+  })
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+
+  function requestCoords() {
+    if (!navigator.geolocation) {
+      setLocationStatus('unavailable')
+      return
+    }
+    setLocationStatus((current) => (current === 'granted' ? current : 'pending'))
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude })
+        setLocationStatus('granted')
+      },
+      () => {
+        setLocationStatus((current) => (current === 'granted' ? current : 'denied'))
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 },
+    )
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -71,28 +86,8 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setOriginStatus('denied')
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude })
-        setOriginStatus('granted')
-        setSortOverride(null)
-      },
-      () => setOriginStatus('denied'),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
-    )
+    requestCoords()
   }, [])
-
-  const origin = useMemo(() => {
-    if (cityId) {
-      const city = cities.find((item) => item.id === cityId)
-      return city ? { lat: city.lat, lng: city.lng } : coords
-    }
-    return coords
-  }, [cityId, coords])
 
   const located = useMemo<LocatedSermon[]>(() => {
     return sermons.flatMap((sermon) => {
@@ -102,28 +97,16 @@ export default function App() {
         {
           ...sermon,
           venue,
-          distanceKm: origin ? distanceKm(origin, venue) : undefined,
+          distanceKm: coords ? distanceKm(coords, venue) : undefined,
         },
       ]
     })
-  }, [origin, sermons])
-
-  const autoRadius = useMemo(() => {
-    if (!origin) return 'all' as const
-    const distances = located
-      .map((sermon) => sermon.distanceKm)
-      .filter((value): value is number => value !== undefined)
-    return distances.length ? pickRadius(distances) : 'all'
-  }, [located, origin])
-
-  const radius = radiusOverride ?? autoRadius
-  const sort = sortOverride ?? (origin ? 'nearest' : 'soonest')
+  }, [coords, sermons])
 
   const filtered = useMemo(() => {
     const now = new Date()
     const weekEnd = endOfWeek(now)
     const monthEnd = endOfMonth(now)
-    const needle = query.trim().toLowerCase()
 
     return located
       .filter((sermon) => {
@@ -131,54 +114,27 @@ export default function App() {
         if (when === 'week' && start > weekEnd) return false
         if (when === 'month' && start > monthEnd) return false
         if (language !== 'all' && sermon.language !== language) return false
-        if (region !== 'all' && sermon.venue.region !== region) return false
-        if (radius !== 'all' && (sermon.distanceKm === undefined || sermon.distanceKm > radius)) {
-          return false
-        }
-        if (!needle) return true
-        const haystack = [
-          sermon.title,
-          sermon.titleSi,
-          sermon.speaker,
-          sermon.speakerSi,
-          sermon.venue.name,
-          sermon.venue.nameSi,
-          sermon.venue.city,
-          cityNameSi(sermon.venue.city),
-          sermon.venue.region,
-          regionSi[sermon.venue.region],
-          sermon.language,
-          languageSi[sermon.language],
-          sermon.description,
-          sermon.descriptionSi,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-        return haystack.includes(needle)
+        if (district !== 'all' && sermon.venue.district !== district) return false
+        return true
       })
       .sort((a, b) => {
-        if (sort === 'nearest' && a.distanceKm !== undefined && b.distanceKm !== undefined) {
+        if (a.distanceKm !== undefined && b.distanceKm !== undefined) {
           return a.distanceKm - b.distanceKm || +new Date(a.start) - +new Date(b.start)
         }
         return +new Date(a.start) - +new Date(b.start)
       })
-  }, [language, located, query, radius, region, sort, when])
+  }, [district, language, located, when])
 
-  const nearest = filtered.find((sermon) => sermon.distanceKm !== undefined)
-  const selectedCity = cities.find((city) => city.id === cityId)
-  const originLabel = selectedCity
-    ? selectedCity.name
-    : originStatus === 'granted'
-      ? 'your location'
-      : null
-  const showNearest = Boolean(nearest && originLabel && filtered.length > 1)
-  const listed = showNearest && nearest ? filtered.filter((sermon) => sermon.id !== nearest.id) : filtered
+  const selectedSermons = selectedDay
+    ? filtered.filter((sermon) => colomboDateKey(sermon.start) === selectedDay)
+    : []
 
-  function selectCity(nextCityId: string) {
-    setCityId(nextCityId)
-    setRadiusOverride(null)
-    if (nextCityId) setSortOverride(null)
+  function shiftMonth(delta: number) {
+    setCursor((current) => {
+      const date = new Date(current.year, current.month + delta, 1)
+      return { year: date.getFullYear(), month: date.getMonth() }
+    })
+    setSelectedDay(null)
   }
 
   return (
@@ -190,8 +146,7 @@ export default function App() {
           <span lang="en">Dhamma sermons</span>
         </h1>
         <p className="lede">
-          Upcoming deshanas around the country. Allow location to see what is nearest, or pick a
-          city.
+          Upcoming deshanas around the country. Sermons are ordered by distance from your location.
         </p>
         <div className="ornament" aria-hidden="true" />
       </header>
@@ -203,56 +158,7 @@ export default function App() {
       )}
       {loadError && <p className="banner error">{loadError}</p>}
 
-      <section className="panel" aria-label="Location">
-        <div className="panel-row">
-          <button
-            type="button"
-            className="primary"
-            onClick={() => {
-              setCityId('')
-              setOriginStatus('pending')
-              navigator.geolocation?.getCurrentPosition(
-                (position) => {
-                  setCoords({ lat: position.coords.latitude, lng: position.coords.longitude })
-                  setOriginStatus('granted')
-                  setRadiusOverride(null)
-                  setSortOverride(null)
-                },
-                () => setOriginStatus('denied'),
-              )
-            }}
-          >
-            Use my location
-          </button>
-          <label className="select">
-            <span>Or choose a city</span>
-            <select value={cityId} onChange={(event) => selectCity(event.target.value)}>
-              <option value="">Nearest city…</option>
-              {cities.map((city) => (
-                <option key={city.id} value={city.id}>
-                  {city.name} · {city.nameSi}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <p className="status">
-          {originStatus === 'pending' && 'Looking up your location…'}
-          {originStatus === 'granted' && !cityId && 'Using your current location.'}
-          {originStatus === 'denied' && !cityId && 'Location is off. Pick a city to find nearby sermons.'}
-          {selectedCity && `Measuring from ${selectedCity.name}.`}
-        </p>
-      </section>
-
       <section className="filters" aria-label="Filters">
-        <label className="search">
-          <span>Search</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Temple, city, speaker…"
-          />
-        </label>
         <FilterSelect
           label="Language"
           value={language}
@@ -260,10 +166,11 @@ export default function App() {
           onChange={(value) => setLanguage(value as Language | 'all')}
         />
         <FilterSelect
-          label="Region"
-          value={region}
-          options={regions}
-          onChange={(value) => setRegion(value as Region | 'all')}
+          label="District"
+          value={district}
+          options={districtOptions}
+          labels={Object.fromEntries(districts.map((item) => [item, `${item} · ${districtSi[item]}`]))}
+          onChange={(value) => setDistrict(value as District | 'all')}
         />
         <FilterSelect
           label="When"
@@ -272,56 +179,176 @@ export default function App() {
           labels={{ upcoming: 'Upcoming', week: 'This week', month: 'This month' }}
           onChange={(value) => setWhen(value as WhenFilter)}
         />
-        <FilterSelect
-          label="Within"
-          value={String(radius)}
-          options={radiusOptions.map(String)}
-          labels={{ all: 'Anywhere', '10': '10 km', '25': '25 km', '50': '50 km', '100': '100 km' }}
-          onChange={(value) => setRadiusOverride(value === 'all' ? 'all' : Number(value))}
-        />
-        <FilterSelect
-          label="Sort"
-          value={sort}
-          options={['nearest', 'soonest']}
-          labels={{ nearest: 'Nearest', soonest: 'Soonest' }}
-          onChange={(value) => setSortOverride(value as SortMode)}
-        />
       </section>
 
-      {showNearest && nearest && (
-        <article className="nearest">
-          <p className="kicker">
-            Nearest to {originLabel}
-            <span lang="si">
-              {' '}
-              · {selectedCity ? `${selectedCity.nameSi}ට ආසන්නතම` : 'ඔබට ආසන්නතම'}
-            </span>
-          </p>
-          <SermonSplit sermon={nearest} heading="h2" />
-          <div className="when">
-            <span>{formatWhen(nearest.start, nearest.end)}</span>
-            {nearest.distanceKm !== undefined && (
-              <span className="distance">{formatDistance(nearest.distanceKm)}</span>
-            )}
-          </div>
-        </article>
-      )}
+      <div className="toolbar">
+        <div className="view-toggle" role="tablist" aria-label="View">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'calendar'}
+            className={view === 'calendar' ? 'active' : undefined}
+            onClick={() => {
+              requestCoords()
+              setView('calendar')
+            }}
+          >
+            Calendar
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'list'}
+            className={view === 'list' ? 'active' : undefined}
+            onClick={() => {
+              requestCoords()
+              setView('list')
+            }}
+          >
+            List
+          </button>
+        </div>
+        <p className="count">
+          {loading ? 'Loading sermons…' : `${filtered.length} sermon${filtered.length === 1 ? '' : 's'}`}
+        </p>
+        {locationStatus !== 'granted' && (
+          <button type="button" className="ghost location-btn" onClick={requestCoords}>
+            {locationStatus === 'pending' ? 'Finding you…' : 'Show my distance'}
+          </button>
+        )}
+      </div>
 
-      <p className="count">
-        {loading ? 'Loading sermons…' : `${filtered.length} sermon${filtered.length === 1 ? '' : 's'}`}
-      </p>
-
-      <ol className="list">
-        {listed.map((sermon) => (
-          <SermonCard key={sermon.id} sermon={sermon} />
-        ))}
-      </ol>
-
-      {!loading && filtered.length === 0 && (
-        <p className="empty">No sermons match these filters. Widen the distance or clear a filter.</p>
+      {view === 'calendar' ? (
+        <>
+          <MonthCalendar
+            year={cursor.year}
+            month={cursor.month}
+            sermons={filtered}
+            selectedDay={selectedDay}
+            onSelectDay={(day) => {
+              requestCoords()
+              setSelectedDay(day)
+            }}
+            onPrev={() => shiftMonth(-1)}
+            onNext={() => shiftMonth(1)}
+          />
+          {selectedDay && (
+            <ol className="list day-list">
+              {selectedSermons.map((sermon) => (
+                <SermonCard key={sermon.id} sermon={sermon} onRequestLocation={requestCoords} />
+              ))}
+            </ol>
+          )}
+          {selectedDay && selectedSermons.length === 0 && (
+            <p className="empty">No sermons on this day with the current filters.</p>
+          )}
+        </>
+      ) : (
+        <>
+          <ol className="list">
+            {filtered.map((sermon) => (
+              <SermonCard key={sermon.id} sermon={sermon} onRequestLocation={requestCoords} />
+            ))}
+          </ol>
+          {!loading && filtered.length === 0 && (
+            <p className="empty">No sermons match these filters.</p>
+          )}
+        </>
       )}
     </div>
   )
+}
+
+function MonthCalendar({
+  year,
+  month,
+  sermons,
+  selectedDay,
+  onSelectDay,
+  onPrev,
+  onNext,
+}: {
+  year: number
+  month: number
+  sermons: LocatedSermon[]
+  selectedDay: string | null
+  onSelectDay: (day: string | null) => void
+  onPrev: () => void
+  onNext: () => void
+}) {
+  const todayKey = colomboDateKey(new Date().toISOString())
+  const byDay = useMemo(() => {
+    const groups = new Map<string, LocatedSermon[]>()
+    for (const sermon of sermons) {
+      const key = colomboDateKey(sermon.start)
+      const list = groups.get(key) ?? []
+      list.push(sermon)
+      groups.set(key, list)
+    }
+    return groups
+  }, [sermons])
+
+  const cells = useMemo(() => monthCells(year, month), [year, month])
+
+  return (
+    <section className="month-cal" aria-label={formatMonthTitle(year, month)}>
+      <div className="month-nav">
+        <button type="button" className="ghost" onClick={onPrev} aria-label="Previous month">
+          Previous
+        </button>
+        <h2>{formatMonthTitle(year, month)}</h2>
+        <button type="button" className="ghost" onClick={onNext} aria-label="Next month">
+          Next
+        </button>
+      </div>
+      <div className="month-weekdays">
+        {weekdays.map((day) => (
+          <span key={day}>{day}</span>
+        ))}
+      </div>
+      <div className="month-grid">
+        {cells.map((cell, index) => {
+          if (!cell) return <div key={`pad-${index}`} className="cal-day empty-day" />
+          const key = cell.key
+          const items = byDay.get(key) ?? []
+          const selected = selectedDay === key
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`cal-day${items.length ? ' has-events' : ''}${key === todayKey ? ' today' : ''}${selected ? ' selected' : ''}`}
+              onClick={() => onSelectDay(selected ? null : key)}
+            >
+              <span className="cal-num">{cell.day}</span>
+              <span className="cal-events">
+                {items.slice(0, 3).map((sermon) => (
+                  <span key={sermon.id} className="chip">
+                    {sermon.distanceKm !== undefined ? `${formatDistance(sermon.distanceKm)} · ` : ''}
+                    {formatTime(sermon.start)} {sermon.title}
+                  </span>
+                ))}
+                {items.length > 3 && <span className="chip more">+{items.length - 3}</span>}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+function monthCells(year: number, month: number) {
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const first = new Date(`${year}-${String(month + 1).padStart(2, '0')}-01T12:00:00+05:30`)
+  const lead = first.getUTCDay()
+  const cells: Array<{ day: number; key: string } | null> = []
+  for (let i = 0; i < lead; i += 1) cells.push(null)
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    cells.push({ day, key })
+  }
+  while (cells.length % 7 !== 0) cells.push(null)
+  return cells
 }
 
 function FilterSelect({
@@ -351,33 +378,31 @@ function FilterSelect({
   )
 }
 
-function SermonCard({ sermon }: { sermon: LocatedSermon }) {
-  const location = `${sermon.venue.name}, ${sermon.venue.city}`
+function SermonCard({
+  sermon,
+  onRequestLocation,
+}: {
+  sermon: LocatedSermon
+  onRequestLocation: () => void
+}) {
   return (
     <li className="card">
       <div className="card-top">
         <div className="when">
           <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
         </div>
-        {sermon.distanceKm !== undefined && (
-          <span className="distance">{formatDistance(sermon.distanceKm)}</span>
+        {sermon.distanceKm !== undefined ? (
+          <p className="distance-badge">{formatDistance(sermon.distanceKm)}</p>
+        ) : (
+          <button type="button" className="distance-badge ask-location" onClick={onRequestLocation}>
+            Show distance
+          </button>
         )}
       </div>
       <SermonSplit sermon={sermon} heading="h3" />
       <div className="actions">
         <a href={mapsUrl(sermon.venue.lat, sermon.venue.lng, sermon.venue.name)}>
           Directions · මාර්ගය
-        </a>
-        <a
-          href={googleCalendarUrl({
-            title: `${sermon.title} / ${sermon.titleSi} — ${sermon.venue.name}`,
-            start: sermon.start,
-            end: sermon.end,
-            location,
-            details: [sermon.description, sermon.descriptionSi].filter(Boolean).join('\n'),
-          })}
-        >
-          Add to calendar · දින දර්ශනයට එක් කරන්න
         </a>
         {sermon.livestreamUrl && (
           <a href={sermon.livestreamUrl} rel="noreferrer" target="_blank">
@@ -405,8 +430,9 @@ function SermonSplit({
         speaker={sermon.speaker}
         venueName={sermon.venue.name}
         city={sermon.venue.city}
-        region={sermon.venue.region}
+        district={sermon.venue.district}
         language={sermon.language}
+        distance={sermon.distanceKm !== undefined ? formatDistance(sermon.distanceKm) : undefined}
         description={sermon.description}
       />
       <SermonCopy
@@ -416,8 +442,9 @@ function SermonSplit({
         speaker={sermon.speakerSi}
         venueName={sermon.venue.nameSi ?? sermon.venue.name}
         city={cityNameSi(sermon.venue.city)}
-        region={regionSi[sermon.venue.region]}
+        district={districtSi[sermon.venue.district]}
         language={languageSi[sermon.language]}
+        distance={sermon.distanceKm !== undefined ? formatDistanceSi(sermon.distanceKm) : undefined}
         description={sermon.descriptionSi}
       />
     </div>
@@ -431,8 +458,9 @@ function SermonCopy({
   speaker,
   venueName,
   city,
-  region,
+  district,
   language,
+  distance,
   description,
 }: {
   heading: 'h2' | 'h3'
@@ -441,8 +469,9 @@ function SermonCopy({
   speaker: string
   venueName: string
   city: string
-  region: string
+  district: string
   language: string
+  distance?: string
   description?: string
 }) {
   return (
@@ -451,7 +480,8 @@ function SermonCopy({
       <p className="meta">{speaker}</p>
       <p className="meta">{venueName}</p>
       <p className="meta">
-        {city} · {region} · {language}
+        {city} · {district} · {language}
+        {distance ? ` · ${distance}` : ''}
       </p>
       {description && <p className="notes">{description}</p>}
     </div>

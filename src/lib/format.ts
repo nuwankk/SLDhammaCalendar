@@ -26,41 +26,27 @@ export function formatWhen(start: string, end?: string) {
   return joinWhen(formatDate(start), formatTime(start), end ? formatTime(end) : undefined)
 }
 
+export function colomboDateKey(iso: string) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(iso))
+}
+
+export function formatMonthTitle(year: number, monthIndex: number) {
+  return new Intl.DateTimeFormat('en-LK', {
+    timeZone,
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${year}-${String(monthIndex + 1).padStart(2, '0')}-15T12:00:00+05:30`))
+}
+
 function joinWhen(date: string, startTime: string, endTime?: string) {
   const startLabel = `${date} · ${startTime}`
   if (!endTime) return startLabel
   return `${startLabel} – ${endTime}`
-}
-
-export function googleCalendarUrl(input: {
-  title: string
-  start: string
-  end?: string
-  location: string
-  details?: string
-}) {
-  const start = toGCalStamp(input.start)
-  const end = toGCalStamp(input.end ?? addHour(input.start))
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: input.title,
-    dates: `${start}/${end}`,
-    location: input.location,
-    details: input.details ?? '',
-    ctz: timeZone,
-  })
-  return `https://calendar.google.com/calendar/render?${params.toString()}`
-}
-
-function addHour(iso: string) {
-  return new Date(new Date(iso).getTime() + 60 * 60 * 1000).toISOString()
-}
-
-function toGCalStamp(iso: string) {
-  return new Date(iso)
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d{3}Z$/, 'Z')
 }
 
 export function mapsUrl(lat: number, lng: number, label: string) {

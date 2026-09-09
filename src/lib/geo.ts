@@ -18,15 +18,11 @@ export function distanceKm(from: Coords, to: Coords) {
 }
 
 export function formatDistance(km: number) {
-  if (km < 1) return `${Math.round(km * 1000)} m`
-  if (km < 10) return `${km.toFixed(1)} km`
-  return `${Math.round(km)} km`
+  const value = km < 10 ? km.toFixed(1) : String(Math.round(km))
+  return `${value} km`
 }
 
-export function pickRadius(distances: number[]) {
-  const buckets = [10, 25, 50, 100]
-  for (const bucket of buckets) {
-    if (distances.filter((value) => value <= bucket).length >= 2) return bucket
-  }
-  return 'all' as const
+export function formatDistanceSi(km: number) {
+  const value = km < 10 ? km.toFixed(1) : String(Math.round(km))
+  return `කි.මී. ${value}`
 }

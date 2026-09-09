@@ -1,15 +1,59 @@
 export type Language = 'Sinhala' | 'English' | 'Tamil' | 'Pali' | 'Mixed'
 
-export type Region =
-  | 'Western'
-  | 'Central'
-  | 'Southern'
-  | 'Northern'
-  | 'Eastern'
-  | 'North Western'
-  | 'North Central'
-  | 'Uva'
-  | 'Sabaragamuwa'
+export type District =
+  | 'Ampara'
+  | 'Anuradhapura'
+  | 'Badulla'
+  | 'Batticaloa'
+  | 'Colombo'
+  | 'Galle'
+  | 'Gampaha'
+  | 'Hambantota'
+  | 'Jaffna'
+  | 'Kalutara'
+  | 'Kandy'
+  | 'Kegalle'
+  | 'Kilinochchi'
+  | 'Kurunegala'
+  | 'Mannar'
+  | 'Matale'
+  | 'Matara'
+  | 'Monaragala'
+  | 'Mullaitivu'
+  | 'Nuwara Eliya'
+  | 'Polonnaruwa'
+  | 'Puttalam'
+  | 'Ratnapura'
+  | 'Trincomalee'
+  | 'Vavuniya'
+
+export const districts: District[] = [
+  'Ampara',
+  'Anuradhapura',
+  'Badulla',
+  'Batticaloa',
+  'Colombo',
+  'Galle',
+  'Gampaha',
+  'Hambantota',
+  'Jaffna',
+  'Kalutara',
+  'Kandy',
+  'Kegalle',
+  'Kilinochchi',
+  'Kurunegala',
+  'Mannar',
+  'Matale',
+  'Matara',
+  'Monaragala',
+  'Mullaitivu',
+  'Nuwara Eliya',
+  'Polonnaruwa',
+  'Puttalam',
+  'Ratnapura',
+  'Trincomalee',
+  'Vavuniya',
+]
 
 export type Coords = {
   lat: number
@@ -21,7 +65,7 @@ export type Venue = {
   name: string
   nameSi?: string
   city: string
-  region: Region
+  district: District
   lat: number
   lng: number
 }

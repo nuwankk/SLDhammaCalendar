@@ -1,15 +1,31 @@
-import type { Language, Region } from '../types'
+import type { District, Language } from '../types'
 
-export const regionSi: Record<Region, string> = {
-  Western: 'බස්නාහිර',
-  Central: 'මධ්‍යම',
-  Southern: 'දකුණු',
-  Northern: 'උතුරු',
-  Eastern: 'නැගෙනහිර',
-  'North Western': 'වයඹ',
-  'North Central': 'උතුරු මැද',
-  Uva: 'ඌව',
-  Sabaragamuwa: 'සබරගමුව',
+export const districtSi: Record<District, string> = {
+  Ampara: 'අම්පාර',
+  Anuradhapura: 'අනුරාධපුරය',
+  Badulla: 'බදුල්ල',
+  Batticaloa: 'මඩකලපුව',
+  Colombo: 'කොළඹ',
+  Galle: 'ගාල්ල',
+  Gampaha: 'ගම්පහ',
+  Hambantota: 'හම්බන්තොට',
+  Jaffna: 'යාපනය',
+  Kalutara: 'කළුතර',
+  Kandy: 'මහනුවර',
+  Kegalle: 'කෑගල්ල',
+  Kilinochchi: 'කිලිනොච්චි',
+  Kurunegala: 'කුරුණෑගල',
+  Mannar: 'මන්නාරම',
+  Matale: 'මාතලේ',
+  Matara: 'මාතර',
+  Monaragala: 'මොණරාගල',
+  Mullaitivu: 'මුලතිව්',
+  'Nuwara Eliya': 'නුවරඑළිය',
+  Polonnaruwa: 'පොළොන්නරුව',
+  Puttalam: 'පුත්තලම',
+  Ratnapura: 'රත්නපුර',
+  Trincomalee: 'ත්‍රිකුණාමලය',
+  Vavuniya: 'වවුනියාව',
 }
 
 export const languageSi: Record<Language, string> = {
