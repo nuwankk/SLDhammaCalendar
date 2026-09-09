@@ -49,8 +49,16 @@ function joinWhen(date: string, startTime: string, endTime?: string) {
   return `${startLabel} – ${endTime}`
 }
 
-export function mapsUrl(lat: number, lng: number, label: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng} (${label})`)}`
+export function mapsUrl(query: string) {
+  const trimmed = query.trim()
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trimmed)}`
+}
+
+export function directionsUrl(sermon: { location?: string; venue?: { lat: number; lng: number; name: string } }) {
+  if (sermon.location) return mapsUrl(sermon.location)
+  if (sermon.venue) return mapsUrl(`${sermon.venue.name}, ${sermon.venue.lat},${sermon.venue.lng}`)
+  return undefined
 }
 
 export function endOfWeek(from: Date) {

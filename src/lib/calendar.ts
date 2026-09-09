@@ -82,6 +82,7 @@ function fromGoogleEvent(event: CalendarEvent): Sermon | null {
     description: stripFields(description, 'en'),
     descriptionSi: readField(description, 'Description-SI') ?? stripFields(description, 'si'),
     livestreamUrl,
+    location: event.location?.trim() || undefined,
     source: 'google',
   }
 }

@@ -8,7 +8,7 @@ import {
   formatMonthTitle,
   formatTime,
   formatWhen,
-  mapsUrl,
+  directionsUrl,
 } from './lib/format'
 import { cityNameSi, districtSi, languageSi } from './lib/labels'
 import { inferAttendance, isInPerson, isLivestream } from './lib/attendance'
@@ -412,10 +412,7 @@ function SermonCard({
 }
 
 function AttendanceMarks({ sermon }: { sermon: LocatedSermon }) {
-  const maps =
-    isInPerson(sermon.attendance) && sermon.venue
-      ? mapsUrl(sermon.venue.lat, sermon.venue.lng, sermon.venue.name)
-      : undefined
+  const maps = isInPerson(sermon.attendance) ? directionsUrl(sermon) : undefined
   const live = isLivestream(sermon.attendance) ? sermon.livestreamUrl : undefined
 
   return (
