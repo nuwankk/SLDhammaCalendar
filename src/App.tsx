@@ -1,15 +1,22 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { lookupSpeakerPhoto } from './data/speakers'
 import { venuesById } from './data/venues'
 import { loadSermons } from './lib/calendar'
 import {
+  addDaysKey,
+  addMonthsKey,
   colomboDateKey,
+  dateFromKey,
   endOfMonth,
   endOfWeek,
+  formatDayHeading,
+  formatDayHeadingSi,
   formatMonthTitle,
   formatTime,
+  formatWeekTitle,
   formatWhen,
   directionsUrl,
+  startOfWeekKey,
 } from './lib/format'
 import { cityNameSi, districtSi, languageSi } from './lib/labels'
 import { inferAttendance, isInPerson, isLivestream } from './lib/attendance'
@@ -25,11 +32,12 @@ import {
 
 type WhenFilter = 'upcoming' | 'week' | 'month'
 type ViewMode = 'calendar' | 'list'
+type CalRange = 'week' | 'month'
 type LocationStatus = 'idle' | 'pending' | 'granted' | 'denied' | 'unavailable'
 
 const languages: Array<Language | 'all'> = ['all', 'Sinhala', 'English', 'Tamil', 'Pali', 'Mixed']
 const districtOptions: Array<District | 'all'> = ['all', ...districts]
-const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 export default function App() {
   const [sermons, setSermons] = useState<Sermon[]>([])
@@ -43,11 +51,11 @@ export default function App() {
   const [district, setDistrict] = useState<District | 'all'>('all')
   const [when, setWhen] = useState<WhenFilter>('upcoming')
   const [view, setView] = useState<ViewMode>('calendar')
-  const [cursor, setCursor] = useState(() => {
-    const now = new Date()
-    return { year: now.getFullYear(), month: now.getMonth() }
-  })
+  const [calRange, setCalRange] = useState<CalRange>('month')
+  const [focusDay, setFocusDay] = useState(() => colomboDateKey(new Date().toISOString()))
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const didPickDay = useRef(false)
+  const dayPanelRef = useRef<HTMLDivElement>(null)
 
   function requestCoords() {
     if (!navigator.geolocation) {
@@ -131,16 +139,39 @@ export default function App() {
       })
   }, [district, language, located, when])
 
+  useEffect(() => {
+    if (didPickDay.current || loading) return
+    didPickDay.current = true
+    const today = colomboDateKey(new Date().toISOString())
+    const next = filtered.find((sermon) => colomboDateKey(sermon.start) >= today)
+    const key = next ? colomboDateKey(next.start) : today
+    setSelectedDay(key)
+    setFocusDay(key)
+  }, [filtered, loading])
+
   const selectedSermons = selectedDay
-    ? filtered.filter((sermon) => colomboDateKey(sermon.start) === selectedDay)
+    ? filtered
+        .filter((sermon) => colomboDateKey(sermon.start) === selectedDay)
+        .sort((a, b) => +new Date(a.start) - +new Date(b.start))
     : []
 
-  function shiftMonth(delta: number) {
-    setCursor((current) => {
-      const date = new Date(current.year, current.month + delta, 1)
-      return { year: date.getFullYear(), month: date.getMonth() }
-    })
+  function shiftRange(delta: number) {
+    setFocusDay((current) =>
+      calRange === 'week' ? addDaysKey(current, delta * 7) : addMonthsKey(current, delta),
+    )
     setSelectedDay(null)
+  }
+
+  function goToday() {
+    const today = colomboDateKey(new Date().toISOString())
+    setFocusDay(today)
+    setSelectedDay(today)
+    requestCoords()
+  }
+
+  function setRange(range: CalRange) {
+    setCalRange(range)
+    if (selectedDay) setFocusDay(selectedDay)
   }
 
   return (
@@ -152,7 +183,7 @@ export default function App() {
           <span lang="en">Dhamma sermons</span>
         </h1>
         <p className="lede">
-          Upcoming deshanas around the country. Sermons are ordered by distance from your location.
+          Upcoming deshanas around the island — nearest first, in person or on the stream.
         </p>
         <div className="ornament" aria-hidden="true" />
       </header>
@@ -227,26 +258,50 @@ export default function App() {
       {view === 'calendar' ? (
         <>
           <MonthCalendar
-            year={cursor.year}
-            month={cursor.month}
+            focusDay={focusDay}
+            range={calRange}
             sermons={filtered}
             selectedDay={selectedDay}
+            onRange={setRange}
             onSelectDay={(day) => {
               requestCoords()
               setSelectedDay(day)
+              if (day) setFocusDay(day)
+              if (day && window.matchMedia('(max-width: 860px)').matches) {
+                requestAnimationFrame(() => {
+                  dayPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                })
+              }
             }}
-            onPrev={() => shiftMonth(-1)}
-            onNext={() => shiftMonth(1)}
+            onPrev={() => shiftRange(-1)}
+            onNext={() => shiftRange(1)}
+            onToday={goToday}
           />
-          {selectedDay && (
-            <ol className="list day-list">
-              {selectedSermons.map((sermon) => (
-                <SermonCard key={sermon.id} sermon={sermon} onRequestLocation={requestCoords} />
-              ))}
-            </ol>
-          )}
-          {selectedDay && selectedSermons.length === 0 && (
-            <p className="empty">No sermons on this day with the current filters.</p>
+          {selectedDay && (calRange === 'month' || selectedSermons.length > 0) && (
+            <div className="day-panel" ref={dayPanelRef}>
+              <h3 className="day-heading">
+                <span className="day-names">
+                  <span>{formatDayHeading(selectedDay)}</span>
+                  <span lang="si">{formatDayHeadingSi(selectedDay)}</span>
+                </span>
+                <span className="day-count">
+                  {selectedSermons.length === 1
+                    ? '1 sermon'
+                    : selectedSermons.length === 0
+                      ? 'No sermons'
+                      : `${selectedSermons.length} sermons`}
+                </span>
+              </h3>
+              {selectedSermons.length > 0 ? (
+                <ol className="list day-list">
+                  {selectedSermons.map((sermon) => (
+                    <SermonCard key={sermon.id} sermon={sermon} onRequestLocation={requestCoords} />
+                  ))}
+                </ol>
+              ) : (
+                <p className="empty">No sermons on this day with the current filters.</p>
+              )}
+            </div>
           )}
         </>
       ) : (
@@ -266,81 +321,143 @@ export default function App() {
 }
 
 function MonthCalendar({
-  year,
-  month,
+  focusDay,
+  range,
   sermons,
   selectedDay,
+  onRange,
   onSelectDay,
   onPrev,
   onNext,
+  onToday,
 }: {
-  year: number
-  month: number
+  focusDay: string
+  range: CalRange
   sermons: LocatedSermon[]
   selectedDay: string | null
+  onRange: (range: CalRange) => void
   onSelectDay: (day: string | null) => void
   onPrev: () => void
   onNext: () => void
+  onToday: () => void
 }) {
   const todayKey = colomboDateKey(new Date().toISOString())
+  const focus = dateFromKey(focusDay)
+  const year = focus.getUTCFullYear()
+  const month = focus.getUTCMonth()
+  const weekStart = startOfWeekKey(focusDay)
+  const title = range === 'week' ? formatWeekTitle(weekStart) : formatMonthTitle(year, month)
   const byDay = useMemo(() => {
     const groups = new Map<string, LocatedSermon[]>()
     for (const sermon of sermons) {
       const key = colomboDateKey(sermon.start)
       const list = groups.get(key) ?? []
       list.push(sermon)
+      list.sort((a, b) => +new Date(a.start) - +new Date(b.start))
       groups.set(key, list)
     }
     return groups
   }, [sermons])
 
-  const cells = useMemo(() => monthCells(year, month), [year, month])
+  const cells = useMemo(
+    () => (range === 'week' ? weekCells(weekStart) : monthCells(year, month)),
+    [month, range, weekStart, year],
+  )
+  const chipLimit = range === 'week' ? 6 : 3
 
   return (
-    <section className="month-cal" aria-label={formatMonthTitle(year, month)}>
+    <section className={`month-cal ${range}-cal`} aria-label={title}>
       <div className="month-nav">
-        <button type="button" className="ghost" onClick={onPrev} aria-label="Previous month">
-          Previous
-        </button>
-        <h2>{formatMonthTitle(year, month)}</h2>
-        <button type="button" className="ghost" onClick={onNext} aria-label="Next month">
-          Next
-        </button>
-      </div>
-      <div className="month-weekdays">
-        {weekdays.map((day) => (
-          <span key={day}>{day}</span>
-        ))}
-      </div>
-      <div className="month-grid">
-        {cells.map((cell, index) => {
-          if (!cell) return <div key={`pad-${index}`} className="cal-day empty-day" />
-          const key = cell.key
-          const items = byDay.get(key) ?? []
-          const selected = selectedDay === key
-          return (
+        <div className="month-shift">
+          <button
+            type="button"
+            className="ghost icon-btn"
+            onClick={onPrev}
+            aria-label={range === 'week' ? 'Previous week' : 'Previous month'}
+          >
+            ‹
+          </button>
+          <h2>{title}</h2>
+          <button
+            type="button"
+            className="ghost icon-btn"
+            onClick={onNext}
+            aria-label={range === 'week' ? 'Next week' : 'Next month'}
+          >
+            ›
+          </button>
+        </div>
+        <div className="cal-actions">
+          <div className="view-toggle range-toggle" role="tablist" aria-label="Calendar range">
             <button
-              key={key}
               type="button"
-              className={`cal-day${items.length ? ' has-events' : ''}${key === todayKey ? ' today' : ''}${selected ? ' selected' : ''}`}
-              onClick={() => onSelectDay(selected ? null : key)}
+              role="tab"
+              aria-selected={range === 'week'}
+              className={range === 'week' ? 'active' : undefined}
+              onClick={() => onRange('week')}
             >
-              <span className="cal-num">{cell.day}</span>
-              <span className="cal-events">
-                {items.slice(0, 3).map((sermon) => (
-                  <span key={sermon.id} className="chip">
-                    {sermon.distanceKm !== undefined ? `${formatDistance(sermon.distanceKm)} · ` : ''}
-                    {formatTime(sermon.start)} {sermon.title}
-                  </span>
-                ))}
-                {items.length > 3 && <span className="chip more">+{items.length - 3}</span>}
-              </span>
+              Week
             </button>
-          )
-        })}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={range === 'month'}
+              className={range === 'month' ? 'active' : undefined}
+              onClick={() => onRange('month')}
+            >
+              Month
+            </button>
+          </div>
+          <button type="button" className="ghost today-btn" onClick={onToday}>
+            Today
+          </button>
+        </div>
+      </div>
+      <div className={range === 'week' ? 'week-scroller' : undefined}>
+        <div className="month-weekdays">
+          {weekdays.map((day) => (
+            <span key={day}>{day}</span>
+          ))}
+        </div>
+        <div className={range === 'week' ? 'week-grid' : 'month-grid'}>
+          {cells.map((cell, index) => {
+            if (!cell) return <div key={`pad-${index}`} className="cal-day empty-day" />
+            const key = cell.key
+            const items = byDay.get(key) ?? []
+            const selected = selectedDay === key
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`cal-day${items.length ? ' has-events' : ''}${key === todayKey ? ' today' : ''}${selected ? ' selected' : ''}`}
+                onClick={() => onSelectDay(selected ? null : key)}
+              >
+                <span className="cal-num">{cell.day}</span>
+                <span className="cal-events">
+                  {items.slice(0, chipLimit).map((sermon) => (
+                    <span key={sermon.id} className={`chip ${sermon.attendance}`}>
+                      <span className="chip-time">{formatTime(sermon.start)}</span>
+                      <span className="chip-title">{sermon.title}</span>
+                    </span>
+                  ))}
+                  {items.length > chipLimit && (
+                    <span className="chip more">+{items.length - chipLimit} more</span>
+                  )}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </section>
   )
+}
+
+function weekCells(startKey: string) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const key = addDaysKey(startKey, index)
+    return { day: dateFromKey(key).getUTCDate(), key }
+  })
 }
 
 function monthCells(year: number, month: number) {
