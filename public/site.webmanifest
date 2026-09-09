@@ -1,0 +1,27 @@
+{
+  "name": "Dhamma Sermons · Sri Lanka",
+  "short_name": "Dhamma",
+  "description": "Upcoming dhamma sermons around Sri Lanka, nearest first, in person or on the stream.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ece8df",
+  "theme_color": "#6a7d70",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "./apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    },
+    {
+      "src": "./icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

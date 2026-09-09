@@ -177,15 +177,16 @@ export default function App() {
   return (
     <div className="page">
       <header className="hero">
-        <p className="kicker">ශ්‍රී ලංකාව · Sri Lanka</p>
-        <h1>
-          <span lang="si">ධර්ම දේශනා</span>
-          <span lang="en">Dhamma sermons</span>
-        </h1>
-        <p className="lede">
-          Upcoming deshanas around the island — nearest first, in person or on the stream.
-        </p>
-        <div className="ornament" aria-hidden="true" />
+        <img className="brand-mark" src="./mark.png" alt="" width={40} height={40} />
+        <div className="hero-copy">
+          <h1>
+            <span lang="si">ධර්ම දේශනා</span>
+            <span lang="en">Dhamma sermons</span>
+          </h1>
+          <p className="lede">
+            ශ්‍රී ලංකාව · Upcoming deshanas around the island — nearest first.
+          </p>
+        </div>
       </header>
 
       {source === 'sample' && (
