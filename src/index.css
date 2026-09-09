@@ -344,7 +344,8 @@ input:focus,
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px 32px;
-  margin-top: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
 .copy-en {
@@ -417,28 +418,27 @@ a.attendance-tag:hover {
   padding: 20px 22px;
 }
 
-.card-head {
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.card-body {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 16px;
+  margin-top: 12px;
 }
 
 .speaker-photo {
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   object-fit: cover;
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--mist);
-}
-
-.card-top {
-  display: flex;
-  flex: 1;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
 }
 
 .count {

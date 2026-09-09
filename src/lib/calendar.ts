@@ -54,7 +54,7 @@ function fromGoogleEvent(event: CalendarEvent): Sermon | null {
   const start = event.start?.dateTime ?? (event.start?.date ? `${event.start.date}T06:00:00+05:30` : '')
   if (!start || !event.summary) return null
 
-  const description = event.description ?? ''
+  const description = htmlToText(event.description ?? '')
   const livestreamUrl = readField(description, 'Livestream')
   const attendanceHint = parseAttendanceField(readField(description, 'Attendance'))
   const remote = attendanceHint === 'livestream' || isRemoteLocation(event.location ?? '')
@@ -112,7 +112,28 @@ const GENERIC_TOKENS = new Set([
   'sri',
 ])
 
+const FIELD_LABELS =
+  'Language|Speaker-Photo|Speaker-SI|Speaker|Title-SI|Description-SI|Livestream|Attendance'
+
 const cityTokens = new Set(venues.map((venue) => normalize(venue.city)))
+
+export function htmlToText(value: string) {
+  return value
+    .replace(/\r\n/g, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|li|h[1-6])>/gi, '\n')
+    .replace(/<a\s+[^>]*href\s*=\s*["']([^"']+)["'][^>]*>[\s\S]*?<\/a>/gi, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
 
 export function matchVenue(location: string, extra = '') {
   const fromLocation = bestVenue(location)
@@ -175,8 +196,10 @@ function readSpeakerPhoto(event: CalendarEvent, description: string) {
 }
 
 function readField(description: string, label: string) {
-  const match = description.match(new RegExp(`${label}\\s*:\\s*(.+)`, 'i'))
-  return match?.[1]?.trim().split('\n')[0]
+  const match = description.match(
+    new RegExp(`${label}\\s*:\\s*(.+?)(?=\\n(?:${FIELD_LABELS})\\s*:|$)`, 'is'),
+  )
+  return match?.[1]?.trim().split('\n')[0]?.trim()
 }
 
 function stripFields(description: string, script: 'en' | 'si') {

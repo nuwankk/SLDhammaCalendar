@@ -394,23 +394,23 @@ function SermonCard({
   const inPerson = isInPerson(sermon.attendance)
   return (
     <li className="card">
-      <div className="card-head">
-        <SpeakerPhoto sermon={sermon} />
-        <div className="card-top">
-          <div className="when">
-            <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
-            <AttendanceMarks sermon={sermon} />
-          </div>
-          {sermon.distanceKm !== undefined ? (
-            <p className="distance-badge">{formatDistance(sermon.distanceKm)}</p>
-          ) : inPerson ? (
-            <button type="button" className="distance-badge ask-location" onClick={onRequestLocation}>
-              Show distance
-            </button>
-          ) : null}
+      <div className="card-top">
+        <div className="when">
+          <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
+          <AttendanceMarks sermon={sermon} />
         </div>
+        {sermon.distanceKm !== undefined ? (
+          <p className="distance-badge">{formatDistance(sermon.distanceKm)}</p>
+        ) : inPerson ? (
+          <button type="button" className="distance-badge ask-location" onClick={onRequestLocation}>
+            Show distance
+          </button>
+        ) : null}
       </div>
-      <SermonSplit sermon={sermon} heading="h3" />
+      <div className="card-body">
+        <SpeakerPhoto sermon={sermon} />
+        <SermonSplit sermon={sermon} heading="h3" />
+      </div>
     </li>
   )
 }
@@ -425,8 +425,8 @@ function SpeakerPhoto({ sermon }: { sermon: LocatedSermon }) {
       src={src}
       alt=""
       title={sermon.speaker}
-      width={56}
-      height={56}
+      width={64}
+      height={64}
       loading="lazy"
       onError={() => setBroken(true)}
     />
@@ -515,7 +515,6 @@ function SermonSplit({
         district={sermon.venue?.district ?? ''}
         language={sermon.language}
         distance={sermon.distanceKm !== undefined ? formatDistance(sermon.distanceKm) : undefined}
-        description={sermon.description}
       />
       <SermonCopy
         heading={heading}
@@ -527,7 +526,6 @@ function SermonSplit({
         district={sermon.venue ? districtSi[sermon.venue.district] : ''}
         language={languageSi[sermon.language]}
         distance={sermon.distanceKm !== undefined ? formatDistanceSi(sermon.distanceKm) : undefined}
-        description={sermon.descriptionSi}
       />
     </div>
   )
@@ -543,7 +541,6 @@ function SermonCopy({
   district,
   language,
   distance,
-  description,
 }: {
   heading: 'h2' | 'h3'
   lang: 'en' | 'si'
@@ -554,7 +551,6 @@ function SermonCopy({
   district: string
   language: string
   distance?: string
-  description?: string
 }) {
   return (
     <div className={`copy copy-${lang}`} lang={lang}>
@@ -564,7 +560,6 @@ function SermonCopy({
       <p className="meta">
         {[city, district, language, distance].filter(Boolean).join(' · ')}
       </p>
-      {description && <p className="notes">{description}</p>}
     </div>
   )
 }
