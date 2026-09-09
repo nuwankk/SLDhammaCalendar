@@ -34,7 +34,7 @@ body {
 }
 
 .page {
-  width: min(860px, calc(100% - 32px));
+  width: min(920px, calc(100% - 32px));
   margin: 0 auto;
   padding: 40px 0 80px;
 }
@@ -51,8 +51,7 @@ body {
   margin: 0;
   color: var(--saffron);
   font-size: 0.86rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .lede,
@@ -160,14 +159,61 @@ input,
   padding: 20px;
 }
 
-.nearest h2 {
-  font-family: 'Fraunces', serif;
-  font-size: 1.6rem;
-  margin: 6px 0 8px;
+.nearest .when {
+  margin-top: 12px;
 }
 
-.nearest p {
-  margin: 0 0 4px;
+.card-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 28px;
+  margin-top: 8px;
+}
+
+.copy-en {
+  border-right: 1px solid var(--line);
+  padding-right: 28px;
+}
+
+.copy h2,
+.copy h3,
+.card h3 {
+  font-family: 'Fraunces', 'Noto Serif Sinhala', serif;
+  font-size: 1.25rem;
+  margin: 0 0 6px;
+}
+
+.copy h2 {
+  font-size: 1.6rem;
+}
+
+.copy-si h2,
+.copy-si h3 {
+  font-family: 'Noto Serif Sinhala', 'Fraunces', serif;
+}
+
+.when {
+  display: grid;
+  gap: 2px;
+}
+
+.when time,
+.when span {
+  font-size: 0.92rem;
+  color: var(--saffron);
+}
+
+.when .distance {
+  color: var(--green);
+}
+
+.card {
+  padding: 16px 18px;
+}
+
+.card-top {
+  justify-content: space-between;
+  align-items: start;
 }
 
 .count {
@@ -182,29 +228,10 @@ input,
   gap: 12px;
 }
 
-.card {
-  padding: 16px 18px;
-}
-
-.card h3 {
-  font-family: 'Fraunces', serif;
-  font-size: 1.25rem;
-  margin: 8px 0 6px;
-}
-
-.card-top {
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.card-top time {
-  font-size: 0.92rem;
-  color: var(--saffron);
-}
-
 .distance {
   color: var(--green);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .meta,
@@ -214,6 +241,10 @@ input,
 
 .notes {
   margin-top: 8px;
+}
+
+.actions {
+  margin-top: 14px;
 }
 
 .actions a {
@@ -232,7 +263,7 @@ input,
 
 @media (max-width: 640px) {
   .page {
-    width: min(100% - 24px, 860px);
+    width: min(100% - 24px, 920px);
     padding-top: 24px;
   }
 
@@ -240,5 +271,16 @@ input,
   .select,
   .search {
     width: 100%;
+  }
+
+  .card-split {
+    grid-template-columns: 1fr;
+  }
+
+  .copy-en {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding-right: 0;
+    padding-bottom: 12px;
   }
 }

@@ -6,9 +6,11 @@ import {
   endOfMonth,
   endOfWeek,
   formatWhen,
+  formatWhenSi,
   googleCalendarUrl,
   mapsUrl,
 } from './lib/format'
+import { cityNameSi, languageSi, regionSi } from './lib/labels'
 import { distanceKm, formatDistance, pickRadius } from './lib/geo'
 import type { Coords, Language, LocatedSermon, Region, Sermon } from './types'
 
@@ -137,12 +139,21 @@ export default function App() {
         if (!needle) return true
         const haystack = [
           sermon.title,
+          sermon.titleSi,
           sermon.speaker,
+          sermon.speakerSi,
           sermon.venue.name,
+          sermon.venue.nameSi,
           sermon.venue.city,
+          cityNameSi(sermon.venue.city),
           sermon.venue.region,
+          regionSi[sermon.venue.region],
           sermon.language,
+          languageSi[sermon.language],
+          sermon.description,
+          sermon.descriptionSi,
         ]
+          .filter(Boolean)
           .join(' ')
           .toLowerCase()
         return haystack.includes(needle)
@@ -274,13 +285,21 @@ export default function App() {
 
       {nearest && originLabel && (
         <article className="nearest">
-          <p className="kicker">Nearest to {originLabel}</p>
-          <h2>{nearest.title}</h2>
-          <p>
-            {nearest.venue.name}, {nearest.venue.city}
-            {nearest.distanceKm !== undefined && ` · ${formatDistance(nearest.distanceKm)}`}
+          <p className="kicker">
+            Nearest to {originLabel}
+            <span lang="si">
+              {' '}
+              · {selectedCity ? `${selectedCity.nameSi}ට ආසන්නතම` : 'ඔබට ආසන්නතම'}
+            </span>
           </p>
-          <p>{formatWhen(nearest.start, nearest.end)}</p>
+          <SermonSplit sermon={nearest} heading="h2" />
+          <div className="when">
+            <span lang="en">{formatWhen(nearest.start, nearest.end)}</span>
+            <span lang="si">{formatWhenSi(nearest.start, nearest.end)}</span>
+            {nearest.distanceKm !== undefined && (
+              <span className="distance">{formatDistance(nearest.distanceKm)}</span>
+            )}
+          </div>
         </article>
       )}
 
@@ -333,40 +352,109 @@ function SermonCard({ sermon }: { sermon: LocatedSermon }) {
   return (
     <li className="card">
       <div className="card-top">
-        <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
+        <div className="when">
+          <time lang="en" dateTime={sermon.start}>
+            {formatWhen(sermon.start, sermon.end)}
+          </time>
+          <time lang="si" dateTime={sermon.start}>
+            {formatWhenSi(sermon.start, sermon.end)}
+          </time>
+        </div>
         {sermon.distanceKm !== undefined && (
           <span className="distance">{formatDistance(sermon.distanceKm)}</span>
         )}
       </div>
-      <h3>{sermon.title}</h3>
-      <p className="meta">{sermon.speaker}</p>
-      <p className="meta">
-        {sermon.venue.name}
-        {sermon.venue.nameSi ? ` · ${sermon.venue.nameSi}` : ''}
-      </p>
-      <p className="meta">
-        {sermon.venue.city} · {sermon.venue.region} · {sermon.language}
-      </p>
-      {sermon.description && <p className="notes">{sermon.description}</p>}
+      <SermonSplit sermon={sermon} heading="h3" />
       <div className="actions">
-        <a href={mapsUrl(sermon.venue.lat, sermon.venue.lng, sermon.venue.name)}>Directions</a>
+        <a href={mapsUrl(sermon.venue.lat, sermon.venue.lng, sermon.venue.name)}>
+          Directions · මාර්ගය
+        </a>
         <a
           href={googleCalendarUrl({
-            title: `${sermon.title} — ${sermon.venue.name}`,
+            title: `${sermon.title} / ${sermon.titleSi} — ${sermon.venue.name}`,
             start: sermon.start,
             end: sermon.end,
             location,
-            details: sermon.description,
+            details: [sermon.description, sermon.descriptionSi].filter(Boolean).join('\n'),
           })}
         >
-          Add to calendar
+          Add to calendar · දින දර්ශනයට එක් කරන්න
         </a>
         {sermon.livestreamUrl && (
           <a href={sermon.livestreamUrl} rel="noreferrer" target="_blank">
-            Livestream
+            Livestream · සජීවී විකාශය
           </a>
         )}
       </div>
     </li>
+  )
+}
+
+function SermonSplit({
+  sermon,
+  heading,
+}: {
+  sermon: LocatedSermon
+  heading: 'h2' | 'h3'
+}) {
+  return (
+    <div className="card-split">
+      <SermonCopy
+        heading={heading}
+        lang="en"
+        title={sermon.title}
+        speaker={sermon.speaker}
+        venueName={sermon.venue.name}
+        city={sermon.venue.city}
+        region={sermon.venue.region}
+        language={sermon.language}
+        description={sermon.description}
+      />
+      <SermonCopy
+        heading={heading}
+        lang="si"
+        title={sermon.titleSi}
+        speaker={sermon.speakerSi}
+        venueName={sermon.venue.nameSi ?? sermon.venue.name}
+        city={cityNameSi(sermon.venue.city)}
+        region={regionSi[sermon.venue.region]}
+        language={languageSi[sermon.language]}
+        description={sermon.descriptionSi}
+      />
+    </div>
+  )
+}
+
+function SermonCopy({
+  heading: Heading,
+  lang,
+  title,
+  speaker,
+  venueName,
+  city,
+  region,
+  language,
+  description,
+}: {
+  heading: 'h2' | 'h3'
+  lang: 'en' | 'si'
+  title: string
+  speaker: string
+  venueName: string
+  city: string
+  region: string
+  language: string
+  description?: string
+}) {
+  return (
+    <div className={`copy copy-${lang}`} lang={lang}>
+      <Heading>{title}</Heading>
+      <p className="meta">{speaker}</p>
+      <p className="meta">{venueName}</p>
+      <p className="meta">
+        {city} · {region} · {language}
+      </p>
+      {description && <p className="notes">{description}</p>}
+    </div>
   )
 }

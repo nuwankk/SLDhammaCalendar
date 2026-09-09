@@ -1,5 +1,6 @@
 import { venues } from '../data/venues'
 import { sampleSermons } from '../data/sample-events'
+import { speakerNameSi } from './labels'
 import type { Language, Sermon } from '../types'
 
 const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID ?? ''
@@ -54,18 +55,32 @@ function fromGoogleEvent(event: CalendarEvent): Sermon | null {
   const venue = matchVenue(event.location ?? event.summary)
   if (!venue) return null
 
+  const { title, titleSi } = splitTitle(event.summary)
+  const speaker = readField(description, 'Speaker') ?? 'Guest sermon'
+
   return {
     id: event.id ?? `${venue.id}-${start}`,
-    title: event.summary,
-    speaker: readField(description, 'Speaker') ?? 'Guest sermon',
+    title,
+    titleSi: readField(description, 'Title-SI') ?? titleSi ?? title,
+    speaker,
+    speakerSi: readField(description, 'Speaker-SI') ?? speakerNameSi(speaker),
     venueId: venue.id,
     start,
     end: event.end?.dateTime,
     language: parseLanguage(description, event.summary),
-    description: stripFields(description),
+    description: stripFields(description, 'en'),
+    descriptionSi: readField(description, 'Description-SI') ?? stripFields(description, 'si'),
     livestreamUrl: readField(description, 'Livestream'),
     source: 'google',
   }
+}
+
+function splitTitle(summary: string) {
+  const parts = summary.split(/\s+\/\s+/)
+  if (parts.length >= 2 && /[\u0D80-\u0DFF]/.test(parts[1] ?? '')) {
+    return { title: parts[0]?.trim() ?? summary, titleSi: parts.slice(1).join(' / ').trim() }
+  }
+  return { title: summary, titleSi: undefined }
 }
 
 function matchVenue(location: string) {
@@ -96,10 +111,13 @@ function readField(description: string, label: string) {
   return match?.[1]?.trim().split('\n')[0]
 }
 
-function stripFields(description: string) {
-  return description
-    .replace(/^(Language|Speaker|Livestream)\s*:.*$/gim, '')
+function stripFields(description: string, script: 'en' | 'si') {
+  const stripped = description
+    .replace(/^(Language|Speaker|Speaker-SI|Title-SI|Description-SI|Livestream)\s*:.*$/gim, '')
     .trim()
+  if (!stripped) return undefined
+  if (script === 'si') return /[\u0D80-\u0DFF]/.test(stripped) ? stripped : undefined
+  return /[\u0D80-\u0DFF]/.test(stripped) && !/[A-Za-z]/.test(stripped) ? undefined : stripped
 }
 
 function normalize(value: string) {

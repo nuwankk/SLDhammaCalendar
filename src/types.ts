@@ -37,12 +37,15 @@ export type City = {
 export type Sermon = {
   id: string
   title: string
+  titleSi: string
   speaker: string
+  speakerSi: string
   venueId: string
   start: string
   end?: string
   language: Language
   description?: string
+  descriptionSi?: string
   livestreamUrl?: string
   source: 'google' | 'sample'
 }

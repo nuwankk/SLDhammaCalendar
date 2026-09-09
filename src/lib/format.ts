@@ -7,7 +7,20 @@ const dateFormatter = new Intl.DateTimeFormat('en-LK', {
   month: 'short',
 })
 
+const dateFormatterSi = new Intl.DateTimeFormat('si-LK', {
+  timeZone,
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+})
+
 const timeFormatter = new Intl.DateTimeFormat('en-LK', {
+  timeZone,
+  hour: 'numeric',
+  minute: '2-digit',
+})
+
+const timeFormatterSi = new Intl.DateTimeFormat('si-LK', {
   timeZone,
   hour: 'numeric',
   minute: '2-digit',
@@ -22,9 +35,21 @@ export function formatTime(iso: string) {
 }
 
 export function formatWhen(start: string, end?: string) {
-  const startLabel = `${formatDate(start)} · ${formatTime(start)}`
-  if (!end) return startLabel
-  return `${startLabel} – ${formatTime(end)}`
+  return joinWhen(formatDate(start), formatTime(start), end ? formatTime(end) : undefined)
+}
+
+export function formatWhenSi(start: string, end?: string) {
+  return joinWhen(
+    dateFormatterSi.format(new Date(start)),
+    timeFormatterSi.format(new Date(start)),
+    end ? timeFormatterSi.format(new Date(end)) : undefined,
+  )
+}
+
+function joinWhen(date: string, startTime: string, endTime?: string) {
+  const startLabel = `${date} · ${startTime}`
+  if (!endTime) return startLabel
+  return `${startLabel} – ${endTime}`
 }
 
 export function googleCalendarUrl(input: {
