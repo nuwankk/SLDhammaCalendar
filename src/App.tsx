@@ -173,6 +173,8 @@ export default function App() {
     : originStatus === 'granted'
       ? 'your location'
       : null
+  const showNearest = Boolean(nearest && originLabel && filtered.length > 1)
+  const listed = showNearest && nearest ? filtered.filter((sermon) => sermon.id !== nearest.id) : filtered
 
   function selectCity(nextCityId: string) {
     setCityId(nextCityId)
@@ -287,7 +289,7 @@ export default function App() {
         />
       </section>
 
-      {nearest && originLabel && (
+      {showNearest && nearest && (
         <article className="nearest">
           <p className="kicker">
             Nearest to {originLabel}
@@ -312,7 +314,7 @@ export default function App() {
       </p>
 
       <ol className="list">
-        {filtered.map((sermon) => (
+        {listed.map((sermon) => (
           <SermonCard key={sermon.id} sermon={sermon} />
         ))}
       </ol>
