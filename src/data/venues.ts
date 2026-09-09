@@ -29,6 +29,15 @@ export const venues: Venue[] = [
     lng: 79.9187,
   },
   {
+    id: 'bimbaramaya-kadawatha',
+    name: 'Kadawatha Bimbaramaya Temple',
+    nameSi: 'කඩවත බිම්බාරාමය',
+    city: 'Kadawatha',
+    region: 'Western',
+    lat: 7.0014,
+    lng: 79.9499,
+  },
+  {
     id: 'vajiraramaya',
     name: 'Vajiraramaya',
     nameSi: 'වජිරාරාමය',

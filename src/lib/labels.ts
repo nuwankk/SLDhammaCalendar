@@ -22,6 +22,7 @@ export const languageSi: Record<Language, string> = {
 
 const citySi: Record<string, string> = {
   Colombo: 'කොළඹ',
+  Kadawatha: 'කඩවත',
   Negombo: 'මීගමුව',
   Kalutara: 'කළුතර',
   Kelaniya: 'කැළණිය',

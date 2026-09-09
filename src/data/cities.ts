@@ -2,6 +2,7 @@ import type { City } from '../types'
 
 export const cities: City[] = [
   { id: 'colombo', name: 'Colombo', nameSi: 'කොළඹ', lat: 6.9271, lng: 79.8612 },
+  { id: 'kadawatha', name: 'Kadawatha', nameSi: 'කඩවත', lat: 7.0014, lng: 79.9499 },
   { id: 'negombo', name: 'Negombo', nameSi: 'මීගමුව', lat: 7.2008, lng: 79.8737 },
   { id: 'kalutara', name: 'Kalutara', nameSi: 'කළුතර', lat: 6.5854, lng: 79.9607 },
   { id: 'kandy', name: 'Kandy', nameSi: 'මහනුවර', lat: 7.2906, lng: 80.6337 },
