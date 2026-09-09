@@ -4,6 +4,11 @@ services:
     runtime: static
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
+    envVars:
+      - key: VITE_GOOGLE_CALENDAR_ID
+        sync: false
+      - key: VITE_GOOGLE_CALENDAR_API_KEY
+        sync: false
     routes:
       - type: rewrite
         source: /*
