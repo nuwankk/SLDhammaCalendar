@@ -38,6 +38,15 @@ export const venues: Venue[] = [
     lng: 79.9499,
   },
   {
+    id: 'sithuruvana-kadawatha',
+    name: 'Sithuruvana Buddhist Psychological Counseling Center',
+    nameSi: 'සිතුරුවන බෞද්ධ මනෝ විද්‍යා උපදේශන මධ්‍යස්ථානය',
+    city: 'Kadawatha',
+    region: 'Western',
+    lat: 7.0062,
+    lng: 79.9531,
+  },
+  {
     id: 'vajiraramaya',
     name: 'Vajiraramaya',
     nameSi: 'වජිරාරාමය',

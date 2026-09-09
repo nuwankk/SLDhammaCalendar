@@ -60,6 +60,22 @@ export const sampleSermons: Sermon[] = [
     source: 'sample',
   },
   {
+    id: 'sample-23',
+    title: "Let's see life through Buddhism",
+    titleSi: 'බුදු දහමෙන් ජීවිතය දකිමු',
+    speaker: 'Ven. Vilachchiye Pannaloka Thero',
+    speakerSi: 'විලච්චියේ පඤ්ඤාලෝක හිමි',
+    venueId: 'sithuruvana-kadawatha',
+    start: '2026-09-13T15:30:00+05:30',
+    end: '2026-09-13T17:00:00+05:30',
+    language: 'Sinhala',
+    description:
+      'Dhamma sermon at Sithuruvana Buddhist Psychological Counseling Center, Kadawatha. Offered by Mr. Anura Gamini, Mrs. Buddhika Priyanthi, and family.',
+    descriptionSi:
+      'සිතුරුවන බෞද්ධ මනෝ විද්‍යා උපදේශන මධ්‍යස්ථානය, කඩවත. දායකත්වය: අනුර ගාමිණී මහතා සහ බුද්ධිකා ප්‍රියන්ති මහත්මිය ඇතුළු පවුලේ සැම.',
+    source: 'sample',
+  },
+  {
     id: 'sample-4',
     title: 'Dhamma talk by the sea',
     titleSi: 'මුහුදු ඉවුරේ ධර්ම කථාව',

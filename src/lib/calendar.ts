@@ -91,7 +91,16 @@ function matchVenue(location: string) {
       (venue.nameSi !== undefined && haystack.includes(normalize(venue.nameSi)))
     )
   })
-  return byName ?? venues.find((venue) => haystack.includes(normalize(venue.city)))
+  if (byName) return byName
+
+  const byToken = venues.find((venue) => {
+    const tokens = [venue.name, venue.nameSi]
+      .filter((value): value is string => Boolean(value))
+      .flatMap((value) => normalize(value).split(' '))
+      .filter((token) => token.length >= 8)
+    return tokens.some((token) => haystack.includes(token))
+  })
+  return byToken ?? venues.find((venue) => haystack.includes(normalize(venue.city)))
 }
 
 function parseLanguage(description: string, title: string): Language {
