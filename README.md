@@ -26,22 +26,32 @@ Until those values are set, the site shows sample sermons.
 
 ## Publish
 
-GitHub Pages is not required. The easiest free option is [Netlify](https://app.netlify.com/start): import `nuwankk/SLDhammaCalendar`, keep the build command `npm run build`, and set the publish folder to `dist`.
+GitHub Pages is not required. Free static hosts all use the same build:
 
-Cloudflare Pages works the same way: framework Vite, build `npm run build`, output `dist`.
+- Build command: `npm ci && npm run build` (or `npm run build`)
+- Publish folder: `dist`
 
-Put calendar API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`), not in git.
+**[Render](https://dashboard.render.com/select-repo?type=static)** is a good fit: New → Static Site → this repo. The repo includes a `render.yaml` blueprint, so Render can pick up the build and `dist` folder automatically.
+
+[Netlify](https://app.netlify.com/start) and Cloudflare Pages work the same way if you prefer them.
+
+Put calendar API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`), not in git. Vite inlines those at build time, so trigger a new deploy after you add them.
 
 ## Event format
 
 Put the temple name or city in the Google Calendar **location** field so the site can match a known venue and measure distance.
 
+Title can be bilingual with a slash: `Evening deshana / සන්ධ්‍යා දේශනාව`.
+
 In the description, use:
 
 ```
 Speaker: Resident Sangha
+Speaker-SI: ආවාසික සංඝයා
+Title-SI: සන්ධ්‍යා ධර්ම දේශනාව
+Description-SI: විහාර භූමියේ සතිපතා සන්ධ්‍යා දේශනාව.
 Language: Sinhala
 Livestream: https://...
 ```
 
-Supported languages: Sinhala, English, Tamil, Pali, Mixed.
+Supported languages: Sinhala, English, Tamil, Pali, Mixed. Each card shows English and Sinhala side by side.
