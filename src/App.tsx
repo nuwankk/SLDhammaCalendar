@@ -184,11 +184,15 @@ export default function App() {
     <div className="page">
       <header className="hero">
         <p className="kicker">ශ්‍රී ලංකාව · Sri Lanka</p>
-        <h1>Dhamma sermons</h1>
+        <h1>
+          <span lang="si">ධර්ම දේශනා</span>
+          <span lang="en">Dhamma sermons</span>
+        </h1>
         <p className="lede">
           Upcoming deshanas around the country. Allow location to see what is nearest, or pick a
           city.
         </p>
+        <div className="ornament" aria-hidden="true" />
       </header>
 
       {source === 'sample' && (
