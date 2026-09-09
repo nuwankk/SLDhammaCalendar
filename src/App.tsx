@@ -6,7 +6,6 @@ import {
   endOfMonth,
   endOfWeek,
   formatWhen,
-  formatWhenSi,
   googleCalendarUrl,
   mapsUrl,
 } from './lib/format'
@@ -300,8 +299,7 @@ export default function App() {
           </p>
           <SermonSplit sermon={nearest} heading="h2" />
           <div className="when">
-            <span lang="en">{formatWhen(nearest.start, nearest.end)}</span>
-            <span lang="si">{formatWhenSi(nearest.start, nearest.end)}</span>
+            <span>{formatWhen(nearest.start, nearest.end)}</span>
             {nearest.distanceKm !== undefined && (
               <span className="distance">{formatDistance(nearest.distanceKm)}</span>
             )}
@@ -359,12 +357,7 @@ function SermonCard({ sermon }: { sermon: LocatedSermon }) {
     <li className="card">
       <div className="card-top">
         <div className="when">
-          <time lang="en" dateTime={sermon.start}>
-            {formatWhen(sermon.start, sermon.end)}
-          </time>
-          <time lang="si" dateTime={sermon.start}>
-            {formatWhenSi(sermon.start, sermon.end)}
-          </time>
+          <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
         </div>
         {sermon.distanceKm !== undefined && (
           <span className="distance">{formatDistance(sermon.distanceKm)}</span>

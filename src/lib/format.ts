@@ -5,22 +5,10 @@ const dateFormatter = new Intl.DateTimeFormat('en-LK', {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
-})
-
-const dateFormatterSi = new Intl.DateTimeFormat('si-LK', {
-  timeZone,
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
+  year: 'numeric',
 })
 
 const timeFormatter = new Intl.DateTimeFormat('en-LK', {
-  timeZone,
-  hour: 'numeric',
-  minute: '2-digit',
-})
-
-const timeFormatterSi = new Intl.DateTimeFormat('si-LK', {
   timeZone,
   hour: 'numeric',
   minute: '2-digit',
@@ -36,14 +24,6 @@ export function formatTime(iso: string) {
 
 export function formatWhen(start: string, end?: string) {
   return joinWhen(formatDate(start), formatTime(start), end ? formatTime(end) : undefined)
-}
-
-export function formatWhenSi(start: string, end?: string) {
-  return joinWhen(
-    dateFormatterSi.format(new Date(start)),
-    timeFormatterSi.format(new Date(start)),
-    end ? timeFormatterSi.format(new Date(end)) : undefined,
-  )
 }
 
 function joinWhen(date: string, startTime: string, endTime?: string) {
