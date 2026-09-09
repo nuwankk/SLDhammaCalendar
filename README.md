@@ -24,6 +24,14 @@ VITE_GOOGLE_CALENDAR_API_KEY=your-api-key
 
 Until those values are set, the site shows sample sermons.
 
+## Publish
+
+GitHub Pages is not required. The easiest free option is [Netlify](https://app.netlify.com/start): import `nuwankk/SLDhammaCalendar`, keep the build command `npm run build`, and set the publish folder to `dist`.
+
+Cloudflare Pages works the same way: framework Vite, build `npm run build`, output `dist`.
+
+Put calendar API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`), not in git.
+
 ## Event format
 
 Put the temple name or city in the Google Calendar **location** field so the site can match a known venue and measure distance.
