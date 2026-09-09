@@ -130,7 +130,6 @@ body {
 }
 
 .panel-row,
-.filters,
 .card-top,
 .actions {
   display: flex;
@@ -142,20 +141,24 @@ body {
   align-items: end;
 }
 
+.panel-row .select {
+  flex: 1;
+  min-width: 0;
+}
+
 .filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(5, minmax(0, 1fr));
+  gap: 14px;
   margin-top: 18px;
+  align-items: end;
 }
 
 .select,
 .search {
   display: grid;
   gap: 7px;
-  min-width: 140px;
-  flex: 1;
-}
-
-.search {
-  flex: 1.4;
+  min-width: 0;
 }
 
 .select span,
@@ -175,6 +178,13 @@ input,
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 11px 13px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.primary {
+  width: auto;
 }
 
 select:focus,
@@ -317,10 +327,24 @@ input:focus,
   margin-top: 8px;
 }
 
+@media (max-width: 900px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 640px) {
   .page {
     width: min(100% - 24px, 920px);
     padding-top: 32px;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
   }
 
   .primary,
