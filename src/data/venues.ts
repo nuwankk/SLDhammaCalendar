@@ -20,6 +20,15 @@ export const venues: Venue[] = [
     lng: 79.8564,
   },
   {
+    id: 'international-vipassana-colombo',
+    name: 'International Vipassana Meditation Centre',
+    nameSi: 'ජාත්‍යන්තර විපස්සනා භාවනා මධ්‍යස්ථානය',
+    city: 'Colombo',
+    region: 'Western',
+    lat: 6.9087,
+    lng: 79.8716,
+  },
+  {
     id: 'kelaniya',
     name: 'Kelaniya Raja Maha Vihara',
     nameSi: 'කැළණිය රජමහා විහාරය',
