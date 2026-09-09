@@ -84,7 +84,7 @@ function fromGoogleEvent(event: CalendarEvent): Sermon | null {
     descriptionSi: readField(description, 'Description-SI') ?? stripFields(description, 'si'),
     livestreamUrl,
     location: event.location?.trim() || undefined,
-    speakerPhoto: readSpeakerPhoto(event, description),
+    speakerPhotos: readSpeakerPhotos(event, description),
     source: 'google',
   }
 }
@@ -113,7 +113,7 @@ const GENERIC_TOKENS = new Set([
 ])
 
 const FIELD_LABELS =
-  'Language|Speaker-Photo|Speaker-SI|Speaker|Title-SI|Description-SI|Livestream|Attendance'
+  'Language|Speaker-Photo(?:-\\d+)?|Speaker-SI|Speaker|Title-SI|Description-SI|Livestream|Attendance'
 
 const cityTokens = new Set(venues.map((venue) => normalize(venue.city)))
 
@@ -187,14 +187,26 @@ function parseLanguage(description: string, title: string): Language {
   return 'Sinhala'
 }
 
-function readSpeakerPhoto(event: CalendarEvent, description: string) {
-  const field = readField(description, 'Speaker-Photo')
-  const fromField = field ? imageSrc(field) : undefined
-  if (fromField) return fromField
-  const image = event.attachments?.find(
-    (item) => item.fileUrl && item.mimeType?.startsWith('image/'),
-  )
-  return image?.fileUrl ? imageSrc(image.fileUrl) : undefined
+function readSpeakerPhotos(event: CalendarEvent, description: string) {
+  const urls: string[] = []
+  const seen = new Set<string>()
+  const add = (value?: string) => {
+    if (!value) return
+    const src = imageSrc(value)
+    if (!src || seen.has(src)) return
+    seen.add(src)
+    urls.push(src)
+  }
+
+  for (const match of description.matchAll(/^Speaker-Photo(?:-\d+)?\s*:\s*(.+)$/gim)) {
+    for (const raw of match[1].match(/https?:\/\/[^\s,<>"']+/gi) ?? [match[1]]) {
+      add(raw)
+    }
+  }
+  for (const item of event.attachments ?? []) {
+    if (item.fileUrl && item.mimeType?.startsWith('image/')) add(item.fileUrl)
+  }
+  return urls
 }
 
 function imageSrc(value: string) {
@@ -217,7 +229,10 @@ function readField(description: string, label: string) {
 
 function stripFields(description: string, script: 'en' | 'si') {
   const stripped = description
-    .replace(/^(Language|Speaker|Speaker-SI|Title-SI|Description-SI|Livestream|Attendance|Speaker-Photo)\s*:.*$/gim, '')
+    .replace(
+      /^(Language|Speaker|Speaker-SI|Title-SI|Description-SI|Livestream|Attendance|Speaker-Photo(?:-\d+)?)\s*:.*$/gim,
+      '',
+    )
     .trim()
   if (!stripped) return undefined
   if (script === 'si') return /[\u0D80-\u0DFF]/.test(stripped) ? stripped : undefined

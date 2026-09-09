@@ -394,11 +394,12 @@ function SermonCard({
   const inPerson = isInPerson(sermon.attendance)
   return (
     <li className="card">
-      <div className="card-top">
+      <div className={`card-top${speakerPhotosOf(sermon).length ? ' has-photos' : ''}`}>
         <div className="when">
           <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
           <AttendanceMarks sermon={sermon} />
         </div>
+        <SpeakerPhotos sermon={sermon} />
         {sermon.distanceKm !== undefined ? (
           <p className="distance-badge">{formatDistance(sermon.distanceKm)}</p>
         ) : inPerson ? (
@@ -407,30 +408,38 @@ function SermonCard({
           </button>
         ) : null}
       </div>
-      <div className="card-body">
-        <SpeakerPhoto sermon={sermon} />
-        <SermonSplit sermon={sermon} heading="h3" />
-      </div>
+      <SermonSplit sermon={sermon} heading="h3" />
     </li>
   )
 }
 
-function SpeakerPhoto({ sermon }: { sermon: LocatedSermon }) {
-  const src = sermon.speakerPhoto ?? lookupSpeakerPhoto(sermon.speaker)
-  const [broken, setBroken] = useState(false)
-  if (!src || broken) return null
+function speakerPhotosOf(sermon: LocatedSermon) {
+  if (sermon.speakerPhotos?.length) return sermon.speakerPhotos
+  const fallback = lookupSpeakerPhoto(sermon.speaker)
+  return fallback ? [fallback] : []
+}
+
+function SpeakerPhotos({ sermon }: { sermon: LocatedSermon }) {
+  const [hidden, setHidden] = useState<Record<string, true>>({})
+  const photos = speakerPhotosOf(sermon).filter((src) => !hidden[src])
+  if (!photos.length) return null
   return (
-    <img
-      className="speaker-photo"
-      src={src}
-      alt=""
-      title={sermon.speaker}
-      width={64}
-      height={64}
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => setBroken(true)}
-    />
+    <div className="speaker-photos">
+      {photos.map((src) => (
+        <img
+          key={src}
+          className="speaker-photo"
+          src={src}
+          alt=""
+          title={sermon.speaker}
+          width={48}
+          height={48}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setHidden((current) => ({ ...current, [src]: true }))}
+        />
+      ))}
+    </div>
   )
 }
 

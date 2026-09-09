@@ -96,7 +96,7 @@ export type Sermon = {
   descriptionSi?: string
   livestreamUrl?: string
   location?: string
-  speakerPhoto?: string
+  speakerPhotos?: string[]
   source: 'google' | 'sample'
 }
 
