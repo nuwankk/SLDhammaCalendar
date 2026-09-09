@@ -386,4 +386,18 @@ export const sampleSermons: Sermon[] = [
     livestreamUrl: 'https://www.jayatv.lk',
     source: 'sample',
   },
+  {
+    id: 'sample-32',
+    title: 'Online dhamma discussion',
+    titleSi: 'අන්තර්ජාල ධර්ම සාකච්ඡාව',
+    ...sangha,
+    start: '2026-09-14T20:00:00+05:30',
+    end: '2026-09-14T21:00:00+05:30',
+    language: 'English',
+    attendance: 'livestream',
+    description: 'Livestream-only discussion. No in-person seating.',
+    descriptionSi: 'සජීවී විකාශය පමණි. පැමිණීමට ස්ථානයක් නොමැත.',
+    livestreamUrl: 'https://www.youtube.com',
+    source: 'sample',
+  },
 ]

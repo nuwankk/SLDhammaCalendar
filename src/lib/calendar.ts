@@ -1,6 +1,7 @@
 import { venues } from '../data/venues'
 import { sampleSermons } from '../data/sample-events'
 import { speakerNameSi } from './labels'
+import { inferAttendance, isRemoteLocation, parseAttendanceField } from './attendance'
 import type { Language, Sermon } from '../types'
 
 const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID ?? ''
@@ -43,6 +44,7 @@ export async function loadSermons(): Promise<{ sermons: Sermon[]; source: 'googl
 function upcoming(sermons: Sermon[]) {
   const now = Date.now()
   return sermons
+    .map((sermon) => ({ ...sermon, attendance: inferAttendance(sermon) }))
     .filter((sermon) => new Date(sermon.start).getTime() >= now - 60 * 60 * 1000)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
 }
@@ -52,25 +54,34 @@ function fromGoogleEvent(event: CalendarEvent): Sermon | null {
   if (!start || !event.summary) return null
 
   const description = event.description ?? ''
-  const venue = matchVenue(event.location ?? event.summary)
-  if (!venue) return null
+  const livestreamUrl = readField(description, 'Livestream')
+  const attendanceHint = parseAttendanceField(readField(description, 'Attendance'))
+  const remote = attendanceHint === 'livestream' || isRemoteLocation(event.location ?? '')
+  const venue = remote ? undefined : matchVenue(event.location ?? event.summary)
+  const attendance = inferAttendance({
+    attendance: attendanceHint,
+    livestreamUrl,
+    venueId: venue?.id,
+  })
+  if (!venue && attendance !== 'livestream') return null
 
   const { title, titleSi } = splitTitle(event.summary)
   const speaker = readField(description, 'Speaker') ?? 'Guest sermon'
 
   return {
-    id: event.id ?? `${venue.id}-${start}`,
+    id: event.id ?? `${venue?.id ?? 'online'}-${start}`,
     title,
     titleSi: readField(description, 'Title-SI') ?? titleSi ?? title,
     speaker,
     speakerSi: readField(description, 'Speaker-SI') ?? speakerNameSi(speaker),
-    venueId: venue.id,
+    venueId: venue?.id,
     start,
     end: event.end?.dateTime,
     language: parseLanguage(description, event.summary),
+    attendance,
     description: stripFields(description, 'en'),
     descriptionSi: readField(description, 'Description-SI') ?? stripFields(description, 'si'),
-    livestreamUrl: readField(description, 'Livestream'),
+    livestreamUrl,
     source: 'google',
   }
 }
@@ -122,7 +133,7 @@ function readField(description: string, label: string) {
 
 function stripFields(description: string, script: 'en' | 'si') {
   const stripped = description
-    .replace(/^(Language|Speaker|Speaker-SI|Title-SI|Description-SI|Livestream)\s*:.*$/gim, '')
+    .replace(/^(Language|Speaker|Speaker-SI|Title-SI|Description-SI|Livestream|Attendance)\s*:.*$/gim, '')
     .trim()
   if (!stripped) return undefined
   if (script === 'si') return /[\u0D80-\u0DFF]/.test(stripped) ? stripped : undefined

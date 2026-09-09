@@ -122,8 +122,7 @@ body {
   border-radius: 18px;
 }
 
-.card-top,
-.actions {
+.card-top {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -375,13 +374,43 @@ input:focus,
 
 .when {
   display: grid;
-  gap: 2px;
+  gap: 8px;
 }
 
-.when time,
-.when span {
+.when time {
   font-size: 0.92rem;
   color: var(--lotus);
+}
+
+.attendance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.attendance-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: #e7eee8;
+  color: var(--moss);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+a.attendance-tag:hover {
+  color: var(--sage-deep);
+  background: #dce6de;
+}
+
+.attendance-tag svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
 }
 
 .card {
@@ -439,22 +468,6 @@ button.distance-badge {
 .notes {
   margin-top: 10px;
   line-height: 1.7;
-}
-
-.actions {
-  margin-top: 16px;
-}
-
-.actions a {
-  color: var(--sage-deep);
-  text-decoration: none;
-  font-size: 0.92rem;
-}
-
-.actions a:hover {
-  color: var(--lotus);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .empty {

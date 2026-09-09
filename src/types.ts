@@ -1,5 +1,7 @@
 export type Language = 'Sinhala' | 'English' | 'Tamil' | 'Pali' | 'Mixed'
 
+export type Attendance = 'physical' | 'livestream' | 'both'
+
 export type District =
   | 'Ampara'
   | 'Anuradhapura'
@@ -84,10 +86,11 @@ export type Sermon = {
   titleSi: string
   speaker: string
   speakerSi: string
-  venueId: string
+  venueId?: string
   start: string
   end?: string
   language: Language
+  attendance?: Attendance
   description?: string
   descriptionSi?: string
   livestreamUrl?: string
@@ -95,6 +98,7 @@ export type Sermon = {
 }
 
 export type LocatedSermon = Sermon & {
-  venue: Venue
+  venue?: Venue
+  attendance: Attendance
   distanceKm?: number
 }

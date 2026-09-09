@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { venuesById } from './data/venues'
 import { loadSermons } from './lib/calendar'
 import {
@@ -11,6 +11,7 @@ import {
   mapsUrl,
 } from './lib/format'
 import { cityNameSi, districtSi, languageSi } from './lib/labels'
+import { inferAttendance, isInPerson, isLivestream } from './lib/attendance'
 import { distanceKm, formatDistance, formatDistanceSi } from './lib/geo'
 import {
   districts,
@@ -91,13 +92,17 @@ export default function App() {
 
   const located = useMemo<LocatedSermon[]>(() => {
     return sermons.flatMap((sermon) => {
-      const venue = venuesById[sermon.venueId]
-      if (!venue) return []
+      const attendance = inferAttendance(sermon)
+      const venue = sermon.venueId ? venuesById[sermon.venueId] : undefined
+      if (sermon.venueId && !venue) return []
+      if (!venue && attendance !== 'livestream') return []
       return [
         {
           ...sermon,
           venue,
-          distanceKm: coords ? distanceKm(coords, venue) : undefined,
+          attendance,
+          distanceKm:
+            isInPerson(attendance) && coords && venue ? distanceKm(coords, venue) : undefined,
         },
       ]
     })
@@ -114,7 +119,7 @@ export default function App() {
         if (when === 'week' && start > weekEnd) return false
         if (when === 'month' && start > monthEnd) return false
         if (language !== 'all' && sermon.language !== language) return false
-        if (district !== 'all' && sermon.venue.district !== district) return false
+        if (district !== 'all' && sermon.venue?.district !== district) return false
         return true
       })
       .sort((a, b) => {
@@ -385,32 +390,90 @@ function SermonCard({
   sermon: LocatedSermon
   onRequestLocation: () => void
 }) {
+  const inPerson = isInPerson(sermon.attendance)
   return (
     <li className="card">
       <div className="card-top">
         <div className="when">
           <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
+          <AttendanceMarks sermon={sermon} />
         </div>
         {sermon.distanceKm !== undefined ? (
           <p className="distance-badge">{formatDistance(sermon.distanceKm)}</p>
-        ) : (
+        ) : inPerson ? (
           <button type="button" className="distance-badge ask-location" onClick={onRequestLocation}>
             Show distance
           </button>
-        )}
+        ) : null}
       </div>
       <SermonSplit sermon={sermon} heading="h3" />
-      <div className="actions">
-        <a href={mapsUrl(sermon.venue.lat, sermon.venue.lng, sermon.venue.name)}>
-          Directions · මාර්ගය
-        </a>
-        {sermon.livestreamUrl && (
-          <a href={sermon.livestreamUrl} rel="noreferrer" target="_blank">
-            Livestream · සජීවී විකාශය
-          </a>
-        )}
-      </div>
     </li>
+  )
+}
+
+function AttendanceMarks({ sermon }: { sermon: LocatedSermon }) {
+  const maps =
+    isInPerson(sermon.attendance) && sermon.venue
+      ? mapsUrl(sermon.venue.lat, sermon.venue.lng, sermon.venue.name)
+      : undefined
+  const live = isLivestream(sermon.attendance) ? sermon.livestreamUrl : undefined
+
+  return (
+    <p className="attendance">
+      {isInPerson(sermon.attendance) && (
+        <AttendanceTag href={maps} label="Directions · මාර්ගය">
+          <PlaceIcon />
+          In person · ස්ථානීය
+        </AttendanceTag>
+      )}
+      {isLivestream(sermon.attendance) && (
+        <AttendanceTag href={live} label="Livestream · සජීවී විකාශය">
+          <LiveIcon />
+          Livestream · සජීවී
+        </AttendanceTag>
+      )}
+    </p>
+  )
+}
+
+function AttendanceTag({
+  href,
+  label,
+  children,
+}: {
+  href?: string
+  label: string
+  children: ReactNode
+}) {
+  if (href) {
+    return (
+      <a className="attendance-tag" href={href} rel="noreferrer" target="_blank" aria-label={label}>
+        {children}
+      </a>
+    )
+  }
+  return <span className="attendance-tag">{children}</span>
+}
+
+function PlaceIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"
+      />
+    </svg>
+  )
+}
+
+function LiveIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M17 10.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4Z"
+      />
+    </svg>
   )
 }
 
@@ -428,9 +491,9 @@ function SermonSplit({
         lang="en"
         title={sermon.title}
         speaker={sermon.speaker}
-        venueName={sermon.venue.name}
-        city={sermon.venue.city}
-        district={sermon.venue.district}
+        venueName={sermon.venue?.name ?? 'Livestream'}
+        city={sermon.venue?.city ?? 'Online'}
+        district={sermon.venue?.district ?? ''}
         language={sermon.language}
         distance={sermon.distanceKm !== undefined ? formatDistance(sermon.distanceKm) : undefined}
         description={sermon.description}
@@ -440,9 +503,9 @@ function SermonSplit({
         lang="si"
         title={sermon.titleSi}
         speaker={sermon.speakerSi}
-        venueName={sermon.venue.nameSi ?? sermon.venue.name}
-        city={cityNameSi(sermon.venue.city)}
-        district={districtSi[sermon.venue.district]}
+        venueName={sermon.venue?.nameSi ?? sermon.venue?.name ?? 'සජීවී විකාශය'}
+        city={sermon.venue ? cityNameSi(sermon.venue.city) : 'අන්තර්ජාලය'}
+        district={sermon.venue ? districtSi[sermon.venue.district] : ''}
         language={languageSi[sermon.language]}
         distance={sermon.distanceKm !== undefined ? formatDistanceSi(sermon.distanceKm) : undefined}
         description={sermon.descriptionSi}
@@ -480,8 +543,7 @@ function SermonCopy({
       <p className="meta">{speaker}</p>
       <p className="meta">{venueName}</p>
       <p className="meta">
-        {city} · {district} · {language}
-        {distance ? ` · ${distance}` : ''}
+        {[city, district, language, distance].filter(Boolean).join(' · ')}
       </p>
       {description && <p className="notes">{description}</p>}
     </div>
