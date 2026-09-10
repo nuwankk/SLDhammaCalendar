@@ -2,7 +2,6 @@ import { venues } from '../data/venues'
 import { sampleSermons } from '../data/sample-events'
 import { speakerNameSi } from './labels'
 import { inferAttendance, isRemoteLocation, parseAttendanceField } from './attendance'
-import { sermonWindow } from './format'
 import type { Language, Sermon } from '../types'
 
 const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID ?? ''
@@ -20,15 +19,20 @@ type CalendarEvent = {
 
 export async function loadSermons(): Promise<{ sermons: Sermon[]; source: 'google' | 'sample' }> {
   if (!calendarId || !apiKey) {
-    return { sermons: upcoming(sampleSermons), source: 'sample' }
+    return { sermons: prepareSermons(sampleSermons), source: 'sample' }
   }
+
+  const lookback = new Date()
+  lookback.setMonth(lookback.getMonth() - 1)
+  lookback.setDate(1)
+  lookback.setHours(0, 0, 0, 0)
 
   const params = new URLSearchParams({
     key: apiKey,
-    timeMin: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+    timeMin: lookback.toISOString(),
     singleEvents: 'true',
     orderBy: 'startTime',
-    maxResults: '120',
+    maxResults: '200',
   })
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`
   const response = await fetch(url)
@@ -40,14 +44,12 @@ export async function loadSermons(): Promise<{ sermons: Sermon[]; source: 'googl
     .map(fromGoogleEvent)
     .filter((sermon): sermon is Sermon => sermon !== null)
 
-  return { sermons: upcoming(sermons), source: 'google' }
+  return { sermons: prepareSermons(sermons), source: 'google' }
 }
 
-function upcoming(sermons: Sermon[]) {
-  const now = Date.now()
+function prepareSermons(sermons: Sermon[]) {
   return sermons
     .map((sermon) => ({ ...sermon, attendance: inferAttendance(sermon) }))
-    .filter((sermon) => sermonWindow(sermon.start, sermon.end).to >= now)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
 }
 

@@ -39,6 +39,16 @@ export function isHappeningNow(start: string, end?: string, now = Date.now()) {
   return now >= from && now < to
 }
 
+export function isEnded(start: string, end?: string, now = Date.now()) {
+  return sermonWindow(start, end).to <= now
+}
+
+export function sermonStatus(start: string, end?: string, now = Date.now()) {
+  if (isHappeningNow(start, end, now)) return 'live'
+  if (isEnded(start, end, now)) return 'ended'
+  return 'upcoming'
+}
+
 export function colomboDateKey(iso: string) {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone,

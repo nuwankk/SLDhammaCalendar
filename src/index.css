@@ -406,10 +406,14 @@ input:focus,
   padding: 4px 6px;
 }
 
-.chip.livestream,
+.chip.upcoming {
+  background: #e4efe6;
+  color: #3f6b4a;
+}
+
 .chip.live {
-  background: #f3ece6;
-  color: #7d5f54;
+  background: #f8e4e1;
+  color: #9b2c20;
 }
 
 .chip-live {
@@ -418,11 +422,21 @@ input:focus,
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #c45c4a;
+  color: #c02718;
 }
 
-.chip.both {
-  background: #e8eee6;
+.chip.ended {
+  background: #e6eaf3;
+  color: #3d4d6b;
+}
+
+.chip-ended {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4a5c7a;
 }
 
 .chip-time {
@@ -590,23 +604,35 @@ a.attendance-tag:hover {
   background: #dce6de;
 }
 
-.live-now {
-  background: #f3ece6;
-  color: #7a5348;
+.on-air {
+  background: #f8e4e1;
+  color: #9b2c20;
   font-weight: 600;
 }
 
-a.live-now:hover {
-  background: #eadfd8;
-  color: #6b463e;
+a.on-air:hover {
+  background: #f0d4d0;
+  color: #7f2118;
+}
+
+.upcoming {
+  background: #e4efe6;
+  color: #3f6b4a;
+  font-weight: 600;
+}
+
+.ended {
+  background: #e6eaf3;
+  color: #3d4d6b;
+  font-weight: 600;
 }
 
 .live-pip {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #c45c4a;
-  box-shadow: 0 0 0 0 color-mix(in srgb, #c45c4a 55%, transparent);
+  background: #c02718;
+  box-shadow: 0 0 0 0 color-mix(in srgb, #c02718 55%, transparent);
   animation: live-pulse 1.6s ease-out infinite;
 }
 
@@ -622,7 +648,13 @@ a.live-now:hover {
 .card.is-live {
   box-shadow:
     0 16px 36px -28px rgba(58, 63, 56, 0.45),
-    inset 0 0 0 1.5px color-mix(in srgb, #c45c4a 28%, white);
+    inset 0 0 0 1.5px color-mix(in srgb, #c02718 32%, white);
+}
+
+.card.is-ended {
+  box-shadow:
+    0 16px 36px -28px rgba(58, 63, 56, 0.45),
+    inset 0 0 0 1.5px color-mix(in srgb, #4a5c7a 22%, white);
 }
 
 .attendance-tag svg {

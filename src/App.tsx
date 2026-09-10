@@ -16,7 +16,9 @@ import {
   formatWeekTitle,
   formatWhen,
   directionsUrl,
+  isEnded,
   isHappeningNow,
+  sermonStatus,
   startOfWeekKey,
 } from './lib/format'
 import { cityNameSi, districtSi, languageSi } from './lib/labels'
@@ -143,12 +145,16 @@ export default function App() {
         return true
       })
       .sort((a, b) => {
+        const aEnded = isEnded(a.start, a.end, now)
+        const bEnded = isEnded(b.start, b.end, now)
+        if (aEnded !== bEnded) return aEnded ? 1 : -1
+        if (aEnded && bEnded) return +new Date(b.start) - +new Date(a.start)
         if (a.distanceKm !== undefined && b.distanceKm !== undefined) {
           return a.distanceKm - b.distanceKm || +new Date(a.start) - +new Date(b.start)
         }
         return +new Date(a.start) - +new Date(b.start)
       })
-  }, [district, language, located, when])
+  }, [district, language, located, now, when])
 
   useEffect(() => {
     if (didPickDay.current || loading) return
@@ -452,10 +458,13 @@ function MonthCalendar({
                   {items.slice(0, chipLimit).map((sermon) => (
                     <span
                       key={sermon.id}
-                      className={`chip ${sermon.attendance}${isHappeningNow(sermon.start, sermon.end, now) ? ' live' : ''}`}
+                      className={`chip ${sermonStatus(sermon.start, sermon.end, now)}`}
                     >
                       {isHappeningNow(sermon.start, sermon.end, now) && (
-                        <span className="chip-live">Live</span>
+                        <span className="chip-live">On Air</span>
+                      )}
+                      {isEnded(sermon.start, sermon.end, now) && (
+                        <span className="chip-ended">Ended</span>
                       )}
                       <span className="chip-time">{formatTime(sermon.start)}</span>
                       <span className="chip-title">{sermon.title}</span>
@@ -532,12 +541,14 @@ function SermonCard({
   onRequestLocation: () => void
 }) {
   const inPerson = isInPerson(sermon.attendance)
+  const live = isHappeningNow(sermon.start, sermon.end, now)
+  const ended = isEnded(sermon.start, sermon.end, now)
   return (
-    <li className={`card${isHappeningNow(sermon.start, sermon.end, now) ? ' is-live' : ''}`}>
+    <li className={`card${live ? ' is-live' : ''}${ended ? ' is-ended' : ''}`}>
       <div className={`card-top${speakerPhotosOf(sermon).length ? ' has-photos' : ''}`}>
         <div className="when">
           <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
-          <AttendanceMarks sermon={sermon} live={isHappeningNow(sermon.start, sermon.end, now)} />
+          <AttendanceMarks sermon={sermon} live={live} ended={ended} />
         </div>
         <SpeakerPhotos sermon={sermon} />
         {sermon.distanceKm !== undefined ? (
@@ -583,16 +594,34 @@ function SpeakerPhotos({ sermon }: { sermon: LocatedSermon }) {
   )
 }
 
-function AttendanceMarks({ sermon, live }: { sermon: LocatedSermon; live: boolean }) {
+function AttendanceMarks({
+  sermon,
+  live,
+  ended,
+}: {
+  sermon: LocatedSermon
+  live: boolean
+  ended: boolean
+}) {
   const maps = isInPerson(sermon.attendance) ? directionsUrl(sermon) : undefined
   const stream = isLivestream(sermon.attendance) ? sermon.livestreamUrl : undefined
 
   return (
     <p className="attendance">
       {live && (
-        <AttendanceTag className="live-now" href={stream} label="Live now · දැන් සජීවී">
+        <AttendanceTag className="on-air" href={stream} label="On Air · සජීවී">
           <span className="live-pip" aria-hidden="true" />
-          Live now · දැන් සජීවී
+          On Air · සජීවී
+        </AttendanceTag>
+      )}
+      {!live && !ended && (
+        <AttendanceTag className="upcoming" label="Upcoming · ඉදිරියට">
+          Upcoming · ඉදිරියට
+        </AttendanceTag>
+      )}
+      {ended && (
+        <AttendanceTag className="ended" label="Ended · අවසන්">
+          Ended · අවසන්
         </AttendanceTag>
       )}
       {isInPerson(sermon.attendance) && (
