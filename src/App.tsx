@@ -131,9 +131,9 @@ export default function App() {
   }, [coords, sermons])
 
   const filtered = useMemo(() => {
-    const now = new Date()
-    const weekEnd = endOfWeek(now)
-    const monthEnd = endOfMonth(now)
+    const today = new Date()
+    const weekEnd = endOfWeek(today)
+    const monthEnd = endOfMonth(today)
 
     return located
       .filter((sermon) => {
