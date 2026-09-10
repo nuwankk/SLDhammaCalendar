@@ -16,6 +16,7 @@ import {
   formatWeekTitle,
   formatWhen,
   directionsUrl,
+  isHappeningNow,
   startOfWeekKey,
 } from './lib/format'
 import { cityNameSi, districtSi, languageSi } from './lib/labels'
@@ -39,6 +40,15 @@ const languages: Array<Language | 'all'> = ['all', 'Sinhala', 'English', 'Tamil'
 const districtOptions: Array<District | 'all'> = ['all', ...districts]
 const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
+function useNow(intervalMs = 30000) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), intervalMs)
+    return () => window.clearInterval(id)
+  }, [intervalMs])
+  return now
+}
+
 export default function App() {
   const [sermons, setSermons] = useState<Sermon[]>([])
   const [source, setSource] = useState<'google' | 'sample'>('sample')
@@ -51,6 +61,7 @@ export default function App() {
   const [district, setDistrict] = useState<District | 'all'>('all')
   const [when, setWhen] = useState<WhenFilter>('upcoming')
   const [view, setView] = useState<ViewMode>('calendar')
+  const now = useNow()
   const [calRange, setCalRange] = useState<CalRange>('month')
   const [focusDay, setFocusDay] = useState(() => colomboDateKey(new Date().toISOString()))
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
@@ -263,6 +274,7 @@ export default function App() {
             range={calRange}
             sermons={filtered}
             selectedDay={selectedDay}
+            now={now}
             onRange={setRange}
             onSelectDay={(day) => {
               requestCoords()
@@ -296,7 +308,7 @@ export default function App() {
               {selectedSermons.length > 0 ? (
                 <ol className="list day-list">
                   {selectedSermons.map((sermon) => (
-                    <SermonCard key={sermon.id} sermon={sermon} onRequestLocation={requestCoords} />
+                    <SermonCard key={sermon.id} sermon={sermon} now={now} onRequestLocation={requestCoords} />
                   ))}
                 </ol>
               ) : (
@@ -309,7 +321,7 @@ export default function App() {
         <>
           <ol className="list">
             {filtered.map((sermon) => (
-              <SermonCard key={sermon.id} sermon={sermon} onRequestLocation={requestCoords} />
+              <SermonCard key={sermon.id} sermon={sermon} now={now} onRequestLocation={requestCoords} />
             ))}
           </ol>
           {!loading && filtered.length === 0 && (
@@ -326,6 +338,7 @@ function MonthCalendar({
   range,
   sermons,
   selectedDay,
+  now,
   onRange,
   onSelectDay,
   onPrev,
@@ -336,6 +349,7 @@ function MonthCalendar({
   range: CalRange
   sermons: LocatedSermon[]
   selectedDay: string | null
+  now: number
   onRange: (range: CalRange) => void
   onSelectDay: (day: string | null) => void
   onPrev: () => void
@@ -436,7 +450,13 @@ function MonthCalendar({
                 <span className="cal-num">{cell.day}</span>
                 <span className="cal-events">
                   {items.slice(0, chipLimit).map((sermon) => (
-                    <span key={sermon.id} className={`chip ${sermon.attendance}`}>
+                    <span
+                      key={sermon.id}
+                      className={`chip ${sermon.attendance}${isHappeningNow(sermon.start, sermon.end, now) ? ' live' : ''}`}
+                    >
+                      {isHappeningNow(sermon.start, sermon.end, now) && (
+                        <span className="chip-live">Live</span>
+                      )}
                       <span className="chip-time">{formatTime(sermon.start)}</span>
                       <span className="chip-title">{sermon.title}</span>
                     </span>
@@ -504,18 +524,20 @@ function FilterSelect({
 
 function SermonCard({
   sermon,
+  now,
   onRequestLocation,
 }: {
   sermon: LocatedSermon
+  now: number
   onRequestLocation: () => void
 }) {
   const inPerson = isInPerson(sermon.attendance)
   return (
-    <li className="card">
+    <li className={`card${isHappeningNow(sermon.start, sermon.end, now) ? ' is-live' : ''}`}>
       <div className={`card-top${speakerPhotosOf(sermon).length ? ' has-photos' : ''}`}>
         <div className="when">
           <time dateTime={sermon.start}>{formatWhen(sermon.start, sermon.end)}</time>
-          <AttendanceMarks sermon={sermon} />
+          <AttendanceMarks sermon={sermon} live={isHappeningNow(sermon.start, sermon.end, now)} />
         </div>
         <SpeakerPhotos sermon={sermon} />
         {sermon.distanceKm !== undefined ? (
@@ -561,12 +583,18 @@ function SpeakerPhotos({ sermon }: { sermon: LocatedSermon }) {
   )
 }
 
-function AttendanceMarks({ sermon }: { sermon: LocatedSermon }) {
+function AttendanceMarks({ sermon, live }: { sermon: LocatedSermon; live: boolean }) {
   const maps = isInPerson(sermon.attendance) ? directionsUrl(sermon) : undefined
-  const live = isLivestream(sermon.attendance) ? sermon.livestreamUrl : undefined
+  const stream = isLivestream(sermon.attendance) ? sermon.livestreamUrl : undefined
 
   return (
     <p className="attendance">
+      {live && (
+        <AttendanceTag className="live-now" href={stream} label="Live now · දැන් සජීවී">
+          <span className="live-pip" aria-hidden="true" />
+          Live now · දැන් සජීවී
+        </AttendanceTag>
+      )}
       {isInPerson(sermon.attendance) && (
         <AttendanceTag href={maps} label="Directions · මාර්ගය">
           <PlaceIcon />
@@ -574,7 +602,7 @@ function AttendanceMarks({ sermon }: { sermon: LocatedSermon }) {
         </AttendanceTag>
       )}
       {isLivestream(sermon.attendance) && (
-        <AttendanceTag href={live} label="Livestream · සජීවී විකාශය">
+        <AttendanceTag href={stream} label="Livestream · සජීවී විකාශය">
           <LiveIcon />
           Livestream · සජීවී
         </AttendanceTag>
@@ -586,20 +614,23 @@ function AttendanceMarks({ sermon }: { sermon: LocatedSermon }) {
 function AttendanceTag({
   href,
   label,
+  className,
   children,
 }: {
   href?: string
   label: string
+  className?: string
   children: ReactNode
 }) {
+  const classes = className ? `attendance-tag ${className}` : 'attendance-tag'
   if (href) {
     return (
-      <a className="attendance-tag" href={href} rel="noreferrer" target="_blank" aria-label={label}>
+      <a className={classes} href={href} rel="noreferrer" target="_blank" aria-label={label}>
         {children}
       </a>
     )
   }
-  return <span className="attendance-tag">{children}</span>
+  return <span className={classes}>{children}</span>
 }
 
 function PlaceIcon() {

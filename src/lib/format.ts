@@ -26,6 +26,19 @@ export function formatWhen(start: string, end?: string) {
   return joinWhen(formatDate(start), formatTime(start), end ? formatTime(end) : undefined)
 }
 
+const defaultDurationMs = 90 * 60 * 1000
+
+export function sermonWindow(start: string, end?: string) {
+  const from = new Date(start).getTime()
+  const to = end ? new Date(end).getTime() : from + defaultDurationMs
+  return { from, to }
+}
+
+export function isHappeningNow(start: string, end?: string, now = Date.now()) {
+  const { from, to } = sermonWindow(start, end)
+  return now >= from && now < to
+}
+
 export function colomboDateKey(iso: string) {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone,

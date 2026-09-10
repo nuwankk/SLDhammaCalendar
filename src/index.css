@@ -406,9 +406,19 @@ input:focus,
   padding: 4px 6px;
 }
 
-.chip.livestream {
+.chip.livestream,
+.chip.live {
   background: #f3ece6;
   color: #7d5f54;
+}
+
+.chip-live {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #c45c4a;
 }
 
 .chip.both {
@@ -578,6 +588,41 @@ input:focus,
 a.attendance-tag:hover {
   color: var(--sage-deep);
   background: #dce6de;
+}
+
+.live-now {
+  background: #f3ece6;
+  color: #7a5348;
+  font-weight: 600;
+}
+
+a.live-now:hover {
+  background: #eadfd8;
+  color: #6b463e;
+}
+
+.live-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c45c4a;
+  box-shadow: 0 0 0 0 color-mix(in srgb, #c45c4a 55%, transparent);
+  animation: live-pulse 1.6s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.card.is-live {
+  box-shadow:
+    0 16px 36px -28px rgba(58, 63, 56, 0.45),
+    inset 0 0 0 1.5px color-mix(in srgb, #c45c4a 28%, white);
 }
 
 .attendance-tag svg {

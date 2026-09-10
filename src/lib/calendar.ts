@@ -2,6 +2,7 @@ import { venues } from '../data/venues'
 import { sampleSermons } from '../data/sample-events'
 import { speakerNameSi } from './labels'
 import { inferAttendance, isRemoteLocation, parseAttendanceField } from './attendance'
+import { sermonWindow } from './format'
 import type { Language, Sermon } from '../types'
 
 const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID ?? ''
@@ -24,7 +25,7 @@ export async function loadSermons(): Promise<{ sermons: Sermon[]; source: 'googl
 
   const params = new URLSearchParams({
     key: apiKey,
-    timeMin: new Date().toISOString(),
+    timeMin: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
     singleEvents: 'true',
     orderBy: 'startTime',
     maxResults: '120',
@@ -46,7 +47,7 @@ function upcoming(sermons: Sermon[]) {
   const now = Date.now()
   return sermons
     .map((sermon) => ({ ...sermon, attendance: inferAttendance(sermon) }))
-    .filter((sermon) => new Date(sermon.start).getTime() >= now - 60 * 60 * 1000)
+    .filter((sermon) => sermonWindow(sermon.start, sermon.end).to >= now)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
 }
 
