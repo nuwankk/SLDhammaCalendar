@@ -13,6 +13,7 @@ import {
   formatDayHeadingSi,
   formatMonthTitle,
   formatTime,
+  formatVideoDate,
   formatWeekTitle,
   formatWhen,
   directionsUrl,
@@ -24,17 +25,21 @@ import {
 import { cityNameSi, districtSi, languageSi } from './lib/labels'
 import { inferAttendance, isInPerson, isLivestream } from './lib/attendance'
 import { distanceKm, formatDistance, formatDistanceSi } from './lib/geo'
+import { listMonks } from './lib/monks'
+import { hasYoutubeKey, searchMonkVideos } from './lib/youtube'
 import {
   districts,
   type Coords,
   type District,
   type Language,
   type LocatedSermon,
+  type Monk,
   type Sermon,
+  type YoutubeVideo,
 } from './types'
 
 type WhenFilter = 'upcoming' | 'week' | 'month'
-type ViewMode = 'calendar' | 'list'
+type ViewMode = 'calendar' | 'list' | 'listen'
 type CalRange = 'week' | 'month'
 type LocationStatus = 'idle' | 'pending' | 'granted' | 'denied' | 'unavailable'
 
@@ -156,6 +161,8 @@ export default function App() {
       })
   }, [district, language, located, now, when])
 
+  const monks = useMemo(() => listMonks(sermons), [sermons])
+
   useEffect(() => {
     if (didPickDay.current || loading) return
     didPickDay.current = true
@@ -213,28 +220,30 @@ export default function App() {
       )}
       {loadError && <p className="banner error">{loadError}</p>}
 
-      <section className="filters" aria-label="Filters">
-        <FilterSelect
-          label="Language"
-          value={language}
-          options={languages}
-          onChange={(value) => setLanguage(value as Language | 'all')}
-        />
-        <FilterSelect
-          label="District"
-          value={district}
-          options={districtOptions}
-          labels={Object.fromEntries(districts.map((item) => [item, `${item} · ${districtSi[item]}`]))}
-          onChange={(value) => setDistrict(value as District | 'all')}
-        />
-        <FilterSelect
-          label="When"
-          value={when}
-          options={['upcoming', 'week', 'month']}
-          labels={{ upcoming: 'Upcoming', week: 'This week', month: 'This month' }}
-          onChange={(value) => setWhen(value as WhenFilter)}
-        />
-      </section>
+      {view !== 'listen' && (
+        <section className="filters" aria-label="Filters">
+          <FilterSelect
+            label="Language"
+            value={language}
+            options={languages}
+            onChange={(value) => setLanguage(value as Language | 'all')}
+          />
+          <FilterSelect
+            label="District"
+            value={district}
+            options={districtOptions}
+            labels={Object.fromEntries(districts.map((item) => [item, `${item} · ${districtSi[item]}`]))}
+            onChange={(value) => setDistrict(value as District | 'all')}
+          />
+          <FilterSelect
+            label="When"
+            value={when}
+            options={['upcoming', 'week', 'month']}
+            labels={{ upcoming: 'Upcoming', week: 'This week', month: 'This month' }}
+            onChange={(value) => setWhen(value as WhenFilter)}
+          />
+        </section>
+      )}
 
       <div className="toolbar">
         <div className="view-toggle" role="tablist" aria-label="View">
@@ -262,18 +271,35 @@ export default function App() {
           >
             List
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'listen'}
+            className={view === 'listen' ? 'active' : undefined}
+            onClick={() => setView('listen')}
+          >
+            Listen
+          </button>
         </div>
         <p className="count">
-          {loading ? 'Loading sermons…' : `${filtered.length} sermon${filtered.length === 1 ? '' : 's'}`}
+          {view === 'listen'
+            ? loading
+              ? 'Loading monks…'
+              : `${monks.length} monk${monks.length === 1 ? '' : 's'}`
+            : loading
+              ? 'Loading sermons…'
+              : `${filtered.length} sermon${filtered.length === 1 ? '' : 's'}`}
         </p>
-        {locationStatus !== 'granted' && (
+        {view !== 'listen' && locationStatus !== 'granted' && (
           <button type="button" className="ghost location-btn" onClick={requestCoords}>
             {locationStatus === 'pending' ? 'Finding you…' : 'Show my distance'}
           </button>
         )}
       </div>
 
-      {view === 'calendar' ? (
+      {view === 'listen' ? (
+        <ListenPanel monks={monks} loading={loading} />
+      ) : view === 'calendar' ? (
         <>
           <MonthCalendar
             focusDay={focusDay}
@@ -749,5 +775,149 @@ function SermonCopy({
         {[city, district, language, distance].filter(Boolean).join(' · ')}
       </p>
     </div>
+  )
+}
+
+function ListenPanel({ monks, loading }: { monks: Monk[]; loading: boolean }) {
+  const [selected, setSelected] = useState<Monk | null>(null)
+  if (selected) return <MonkVideos key={selected.id} monk={selected} onBack={() => setSelected(null)} />
+
+  return (
+    <>
+      {!hasYoutubeKey() && (
+        <p className="banner">Showing sample talks until YouTube search is connected.</p>
+      )}
+      <ol className="list">
+        {monks.map((monk) => (
+          <MonkCard key={monk.id} monk={monk} onListen={() => setSelected(monk)} />
+        ))}
+      </ol>
+      {!loading && monks.length === 0 && (
+        <p className="empty">No named monks on the calendar yet.</p>
+      )}
+    </>
+  )
+}
+
+function MonkCard({ monk, onListen }: { monk: Monk; onListen: () => void }) {
+  return (
+    <li className="card monk-card">
+      <div className="monk-top">
+        <MonkPhotos monk={monk} />
+        <div className="card-split">
+          <div className="copy copy-en" lang="en">
+            <h3>{monk.name}</h3>
+          </div>
+          <div className="copy copy-si" lang="si">
+            <h3>{monk.nameSi}</h3>
+          </div>
+        </div>
+      </div>
+      <button type="button" className="listen-more" onClick={onListen}>
+        Listen more · තවත් අසන්න
+      </button>
+    </li>
+  )
+}
+
+function MonkPhotos({ monk }: { monk: Monk }) {
+  const [hidden, setHidden] = useState<Record<string, true>>({})
+  const photos = monk.photos.filter((src) => !hidden[src])
+  if (!photos.length) return null
+  return (
+    <div className="speaker-photos monk-photos">
+      {photos.map((src) => (
+        <img
+          key={src}
+          className="speaker-photo"
+          src={src}
+          alt=""
+          title={monk.name}
+          width={48}
+          height={48}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setHidden((current) => ({ ...current, [src]: true }))}
+        />
+      ))}
+    </div>
+  )
+}
+
+function MonkVideos({ monk, onBack }: { monk: Monk; onBack: () => void }) {
+  const [videos, setVideos] = useState<YoutubeVideo[]>([])
+  const [source, setSource] = useState<'youtube' | 'sample' | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    searchMonkVideos(monk.name)
+      .then((result) => {
+        if (cancelled) return
+        setVideos(result.videos)
+        setSource(result.source)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setVideos([])
+        setSource('sample')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [monk.name])
+
+  return (
+    <section className="listen-videos" aria-label={`${monk.name} talks`}>
+      <div className="listen-head">
+        <button type="button" className="ghost listen-back" onClick={onBack}>
+          ‹ Monks
+        </button>
+        <h2 className="listen-heading">
+          <span>{monk.name}</span>
+          <span lang="si">{monk.nameSi}</span>
+        </h2>
+      </div>
+      {source === 'sample' && (
+        <p className="banner">Showing sample talks until YouTube search is connected.</p>
+      )}
+      {loading ? (
+        <p className="empty">Loading talks…</p>
+      ) : videos.length > 0 ? (
+        <ul className="list">
+          {videos.map((video) => (
+            <li key={video.id}>
+              <a
+                className="card video-card"
+                href={video.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`${video.title} (opens in a new tab)`}
+              >
+                <img
+                  className="video-thumb"
+                  src={video.thumbnailUrl}
+                  alt=""
+                  width={320}
+                  height={180}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="video-copy">
+                  <h3>{video.title}</h3>
+                  <p className="meta">{video.channelTitle}</p>
+                  {video.publishedAt ? <p className="meta">{formatVideoDate(video.publishedAt)}</p> : null}
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="empty">No YouTube talks found for this monk.</p>
+      )}
+    </section>
   )
 }

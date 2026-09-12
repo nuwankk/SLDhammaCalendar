@@ -24,6 +24,20 @@ VITE_GOOGLE_CALENDAR_API_KEY=your-api-key
 
 Until those values are set, the site shows sample sermons.
 
+## Listen to talks on YouTube
+
+The **Listen** tab lists named monks from the calendar. **Listen more** searches public YouTube for that monk and opens a chosen video in a new tab. The site does not scrape Gmail or sign visitors into the calendar account.
+
+1. Enable **YouTube Data API v3** on the same Google Cloud project as the calendar.
+2. Allow the API key to call YouTube (`https://www.googleapis.com/youtube`) and this site’s HTTP referrer.
+3. The calendar API key is reused. Optional override:
+
+```bash
+VITE_YOUTUBE_API_KEY=your-youtube-api-key
+```
+
+Until a key is set (or if a search fails), Listen shows sample talks.
+
 ## Publish
 
 GitHub Pages is not required. Free static hosts all use the same build:
@@ -35,7 +49,7 @@ GitHub Pages is not required. Free static hosts all use the same build:
 
 [Netlify](https://app.netlify.com/start) and Cloudflare Pages work the same way if you prefer them.
 
-Put calendar API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`), not in git. Vite inlines those at build time, so trigger a new deploy after you add them.
+Put API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`, optional `VITE_YOUTUBE_API_KEY`), not in git. Vite inlines those at build time, so trigger a new deploy after you add them.
 
 ## Event format
 

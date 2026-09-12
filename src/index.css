@@ -192,7 +192,9 @@ select:focus,
 input:focus,
 .ghost:focus-visible,
 .view-toggle button:focus-visible,
-.cal-day:focus-visible {
+.cal-day:focus-visible,
+.listen-more:focus-visible,
+.video-card:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--sage) 45%, white);
   outline-offset: 2px;
 }
@@ -755,6 +757,116 @@ button.distance-badge {
   margin-top: 8px;
 }
 
+.monk-card {
+  display: grid;
+  gap: 14px;
+}
+
+.monk-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.monk-top:has(.speaker-photos) {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.monk-top .card-split {
+  margin-top: 0;
+}
+
+.monk-card .copy h3 {
+  margin: 0;
+}
+
+.monk-photos {
+  padding-top: 2px;
+}
+
+.listen-more {
+  justify-self: start;
+  font: inherit;
+  cursor: pointer;
+  color: #f7f8f4;
+  background: var(--sage);
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.listen-more:hover {
+  color: #f7f8f4;
+  background: var(--sage-deep);
+}
+
+.listen-videos {
+  margin-top: 8px;
+}
+
+.listen-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 8px;
+}
+
+.listen-back {
+  width: auto;
+}
+
+.listen-heading {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-family: 'Newsreader', 'Noto Serif Sinhala', serif;
+  font-weight: 500;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.listen-heading [lang='si'] {
+  font-family: 'Noto Serif Sinhala', 'Newsreader', serif;
+  font-size: 0.78em;
+  color: var(--sage-deep);
+}
+
+.video-card {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.video-card:hover {
+  background: #fbf8f1;
+}
+
+.video-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--mist);
+}
+
+.video-copy h3 {
+  font-size: 1.08rem;
+  margin-bottom: 6px;
+}
+
+.video-copy .meta {
+  margin-bottom: 2px;
+}
+
 @media (max-width: 640px) {
   .page {
     width: min(100% - 24px, 1080px);
@@ -844,6 +956,20 @@ button.distance-badge {
     border-bottom: 1px solid var(--line);
     padding-right: 0;
     padding-bottom: 14px;
+  }
+
+  .view-toggle button {
+    padding: 8px 12px;
+  }
+
+  .video-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .monk-top,
+  .monk-top:has(.speaker-photos) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

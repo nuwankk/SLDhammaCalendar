@@ -105,3 +105,19 @@ export type LocatedSermon = Sermon & {
   attendance: Attendance
   distanceKm?: number
 }
+
+export type Monk = {
+  id: string
+  name: string
+  nameSi: string
+  photos: string[]
+}
+
+export type YoutubeVideo = {
+  id: string
+  title: string
+  channelTitle: string
+  publishedAt: string
+  thumbnailUrl: string
+  url: string
+}

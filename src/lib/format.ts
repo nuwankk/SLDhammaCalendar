@@ -18,6 +18,17 @@ export function formatDate(iso: string) {
   return dateFormatter.format(new Date(iso))
 }
 
+const videoDateFormatter = new Intl.DateTimeFormat('en-LK', {
+  timeZone,
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+})
+
+export function formatVideoDate(iso: string) {
+  return videoDateFormatter.format(new Date(iso))
+}
+
 export function formatTime(iso: string) {
   return timeFormatter.format(new Date(iso))
 }
