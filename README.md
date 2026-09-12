@@ -26,7 +26,7 @@ Until those values are set, the site shows sample sermons.
 
 ## Listen to talks on YouTube
 
-The **Listen** tab lists named monks from the calendar. **Listen more** searches public YouTube for that monk and opens a chosen video in a new tab. The site does not scrape Gmail or sign visitors into the calendar account.
+The **Listen** tab lists named monks from the calendar. **Listen more** searches public YouTube for that monk (newest 10 talks, refreshed from YouTube at least once a day) and opens a chosen video in a new tab. The site does not scrape Gmail or sign visitors into the calendar account.
 
 1. Enable **YouTube Data API v3** on the same Google Cloud project as the calendar.
 2. Allow the API key to call YouTube (`https://www.googleapis.com/youtube`) and this site’s HTTP referrer.

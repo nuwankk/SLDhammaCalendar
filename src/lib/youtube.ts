@@ -2,7 +2,18 @@ import { sampleVideosFor } from '../data/sample-videos'
 import type { YoutubeVideo } from '../types'
 
 const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY || import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY || ''
-const cache = new Map<string, YoutubeVideo[]>()
+const maxResults = 10
+const cacheTtlMs = 24 * 60 * 60 * 1000
+const storageKey = 'sldhamma.youtube.videos'
+
+type CachedSearch = {
+  fetchedAt: number
+  videos: YoutubeVideo[]
+  source: 'youtube' | 'sample'
+}
+
+const memoryCache = new Map<string, CachedSearch>()
+const inflight = new Map<string, Promise<{ videos: YoutubeVideo[]; source: 'youtube' | 'sample' }>>
 
 type YoutubeSearchItem = {
   id?: { videoId?: string }
@@ -30,21 +41,28 @@ export function hasYoutubeKey() {
 export async function searchMonkVideos(
   monkName: string,
 ): Promise<{ videos: YoutubeVideo[]; source: 'youtube' | 'sample' }> {
-  const cached = cache.get(monkName)
-  if (cached) return { videos: cached, source: apiKey ? 'youtube' : 'sample' }
+  const cached = readFreshCache(monkName)
+  if (cached) return { videos: cached.videos, source: cached.source }
 
+  const pending = inflight.get(monkName)
+  if (pending) return pending
+
+  const request = fetchMonkVideos(monkName).finally(() => inflight.delete(monkName))
+  inflight.set(monkName, request)
+  return request
+}
+
+async function fetchMonkVideos(monkName: string): Promise<{ videos: YoutubeVideo[]; source: 'youtube' | 'sample' }> {
   if (!apiKey) {
-    const videos = sampleVideosFor(monkName)
-    cache.set(monkName, videos)
-    return { videos, source: 'sample' }
+    return writeCache(monkName, newestFirst(sampleVideosFor(monkName)), 'sample')
   }
 
   try {
     const params = new URLSearchParams({
       part: 'snippet',
       type: 'video',
-      maxResults: '12',
-      order: 'relevance',
+      maxResults: String(maxResults),
+      order: 'date',
       q: `${monkName} dhamma`,
       key: apiKey,
     })
@@ -55,11 +73,62 @@ export async function searchMonkVideos(
       throw new Error(payload.error?.message ?? 'Could not load YouTube talks.')
     }
 
-    const videos = (payload.items ?? []).flatMap(fromSearchItem)
-    cache.set(monkName, videos)
-    return { videos, source: 'youtube' }
+    const videos = newestFirst((payload.items ?? []).flatMap(fromSearchItem))
+    return writeCache(monkName, videos, 'youtube')
   } catch {
-    return { videos: sampleVideosFor(monkName), source: 'sample' }
+    return { videos: newestFirst(sampleVideosFor(monkName)), source: 'sample' }
+  }
+}
+
+function newestFirst(videos: YoutubeVideo[]) {
+  return [...videos]
+    .sort((a, b) => +new Date(b.publishedAt || 0) - +new Date(a.publishedAt || 0))
+    .slice(0, maxResults)
+}
+
+function readFreshCache(monkName: string) {
+  const memory = memoryCache.get(monkName)
+  if (isFresh(memory)) return memory
+  const stored = readStored()[monkName]
+  if (!isFresh(stored)) return undefined
+  memoryCache.set(monkName, stored)
+  return stored
+}
+
+function isFresh(entry: CachedSearch | undefined) {
+  if (!entry) return false
+  if (Date.now() - entry.fetchedAt >= cacheTtlMs) return false
+  if (apiKey && entry.source === 'sample') return false
+  return true
+}
+
+function writeCache(monkName: string, videos: YoutubeVideo[], source: CachedSearch['source']) {
+  const entry: CachedSearch = { fetchedAt: Date.now(), videos, source }
+  memoryCache.set(monkName, entry)
+  const stored = readStored()
+  stored[monkName] = entry
+  writeStored(stored)
+  return { videos, source }
+}
+
+function readStored(): Record<string, CachedSearch> {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(storageKey)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as Record<string, CachedSearch>
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeStored(stored: Record<string, CachedSearch>) {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(stored))
+  } catch {
+    // Ignore quota / private-mode failures; memory cache still applies.
   }
 }
 
