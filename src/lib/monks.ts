@@ -1,6 +1,20 @@
 import { lookupSpeakerPhoto, normalizeSpeaker } from '../data/speakers'
 import type { Monk, Sermon } from '../types'
 
+const sudassanaPhoto =
+  lookupSpeakerPhoto('Ven. Mankadawala Sudassana Thero') ??
+  'https://ictbusa.com/wp-content/uploads/2023/03/leader-sudassana.png'
+
+/** Monks always shown in Listen, even if they have no upcoming calendar sermon. */
+export const featuredMonks: Monk[] = [
+  {
+    id: normalizeSpeaker('Ven. Mankadawala Sudassana Thero'),
+    name: 'Ven. Mankadawala Sudassana Thero',
+    nameSi: 'පූජ්‍ය මංකඩවල සුදස්සන ස්වාමින් වහන්සේ',
+    photos: [sudassanaPhoto],
+  },
+]
+
 function isGenericSpeaker(speaker: string) {
   const name = normalizeSpeaker(speaker)
   if (!name) return true
@@ -10,6 +24,14 @@ function isGenericSpeaker(speaker: string) {
 
 export function listMonks(sermons: Sermon[]): Monk[] {
   const byId = new Map<string, Monk>()
+
+  for (const featured of featuredMonks) {
+    byId.set(featured.id, {
+      ...featured,
+      photos: [...featured.photos],
+    })
+  }
+
   for (const sermon of sermons) {
     if (isGenericSpeaker(sermon.speaker)) continue
     const id = normalizeSpeaker(sermon.speaker)
@@ -23,7 +45,10 @@ export function listMonks(sermons: Sermon[]): Monk[] {
     byId.set(id, {
       id,
       name: existing?.name || sermon.speaker,
-      nameSi: existing?.nameSi && existing.nameSi !== existing.name ? existing.nameSi : sermon.speakerSi || sermon.speaker,
+      nameSi:
+        existing?.nameSi && existing.nameSi !== existing.name
+          ? existing.nameSi
+          : sermon.speakerSi || sermon.speaker,
       photos,
     })
   }
