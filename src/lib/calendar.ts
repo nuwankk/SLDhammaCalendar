@@ -113,6 +113,11 @@ const GENERIC_TOKENS = new Set([
   'viharaya',
   'rajamaha',
   'sri',
+  // Common Sri Lankan temple words — not unique enough to identify a venue.
+  'purana',
+  'puranaya',
+  'mangala',
+  'ancient',
 ])
 
 const FIELD_LABELS =
@@ -144,7 +149,8 @@ export function matchVenue(location: string, extra = '') {
   if (fromLocation && fromLocation.score >= 50) return fromLocation.venue
   const fromAll = bestVenue(`${location} ${extra}`)
   if (fromAll && fromAll.score >= 50) return fromAll.venue
-  return fromLocation?.venue ?? fromAll?.venue
+  // Weak city-only hits are not enough — keep the Calendar location as typed.
+  return undefined
 }
 
 function bestVenue(text: string) {
