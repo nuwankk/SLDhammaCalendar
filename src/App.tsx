@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { AddSermonForm } from './AddSermonForm'
 import { lookupSpeakerPhoto } from './data/speakers'
 import { venuesById } from './data/venues'
 import { loadSermons } from './lib/calendar'
@@ -72,8 +73,23 @@ export default function App() {
   const [calRange, setCalRange] = useState<CalRange>('month')
   const [focusDay, setFocusDay] = useState(() => colomboDateKey(new Date().toISOString()))
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [showAddSermon, setShowAddSermon] = useState(false)
   const didPickDay = useRef(false)
   const dayPanelRef = useRef<HTMLDivElement>(null)
+
+  function reloadSermons() {
+    setLoading(true)
+    setLoadError(null)
+    loadSermons()
+      .then((result) => {
+        setSermons(result.sermons)
+        setSource(result.source)
+      })
+      .catch((error: unknown) => {
+        setLoadError(error instanceof Error ? error.message : 'Could not load sermons.')
+      })
+      .finally(() => setLoading(false))
+  }
 
   function requestCoords() {
     if (!navigator.geolocation) {
@@ -94,23 +110,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    let cancelled = false
-    loadSermons()
-      .then((result) => {
-        if (cancelled) return
-        setSermons(result.sermons)
-        setSource(result.source)
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return
-        setLoadError(error instanceof Error ? error.message : 'Could not load sermons.')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
+    reloadSermons()
   }, [])
 
   useEffect(() => {
@@ -211,6 +211,9 @@ export default function App() {
             ශ්‍රී ලංකාව · Upcoming deshanas around the island — nearest first.
           </p>
         </div>
+        <button type="button" className="ghost add-sermon-btn" onClick={() => setShowAddSermon(true)}>
+          Add sermon
+        </button>
       </header>
 
       {source === 'sample' && (
@@ -360,6 +363,10 @@ export default function App() {
             <p className="empty">No sermons match these filters.</p>
           )}
         </>
+      )}
+
+      {showAddSermon && (
+        <AddSermonForm onClose={() => setShowAddSermon(false)} onCreated={reloadSermons} />
       )}
     </div>
   )

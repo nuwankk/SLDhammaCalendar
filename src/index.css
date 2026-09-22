@@ -57,6 +57,12 @@ body {
   padding-bottom: 0;
 }
 
+.add-sermon-btn {
+  margin-left: auto;
+  width: auto;
+  flex-shrink: 0;
+}
+
 .brand-mark {
   width: 40px;
   height: 40px;
@@ -867,6 +873,100 @@ button.distance-badge {
   margin-bottom: 2px;
 }
 
+.add-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: start center;
+  padding: 28px 16px 40px;
+  overflow: auto;
+  background: color-mix(in srgb, #3a3f38 42%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.add-panel {
+  width: min(720px, 100%);
+  margin-top: 24px;
+  padding: 22px 22px 18px;
+  background:
+    linear-gradient(180deg, #fbf8f1 0%, var(--paper) 100%);
+  border: 1px solid color-mix(in srgb, var(--line) 80%, white);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px -28px rgba(58, 63, 56, 0.65);
+}
+
+.add-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.add-head h2 {
+  margin: 0;
+  font-family: 'Newsreader', 'Noto Serif Sinhala', serif;
+  font-weight: 500;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.add-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.add-span {
+  grid-column: 1 / -1;
+}
+
+.add-grid textarea {
+  font: inherit;
+  color: var(--ink);
+  background: #fcfdfb;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 13px;
+  width: 100%;
+  resize: vertical;
+}
+
+.primary-action {
+  font: inherit;
+  cursor: pointer;
+  color: #f7f8f4;
+  background: var(--sage);
+  border: 0;
+  border-radius: 12px;
+  padding: 11px 18px;
+  font-weight: 600;
+}
+
+.primary-action:hover {
+  background: var(--sage-deep);
+}
+
+.primary-action:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.banner.ok {
+  background: #e4efe6;
+  color: #3f6b4a;
+}
+
 @media (max-width: 640px) {
   .page {
     width: min(100% - 24px, 1080px);
@@ -970,6 +1070,23 @@ button.distance-badge {
   .monk-top,
   .monk-top:has(.speaker-photos) {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .add-sermon-btn {
+    width: auto;
+  }
+
+  .hero {
+    flex-wrap: wrap;
+  }
+
+  .add-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .add-panel {
+    padding: 16px;
+    margin-top: 8px;
   }
 }
 

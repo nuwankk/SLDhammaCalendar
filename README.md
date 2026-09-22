@@ -38,6 +38,29 @@ VITE_YOUTUBE_API_KEY=your-youtube-api-key
 
 Until a key is set (or if a search fails), Listen shows sample talks.
 
+## Add sermons (shared PIN + Apps Script)
+
+Editors can use **Add sermon** on the site. They do not need Google Calendar knowledge. A shared PIN is checked in Google Apps Script, which creates the event in the correct format.
+
+1. Open [script.google.com](https://script.google.com) → New project (use the same Google account that owns/edits the calendar).
+2. Paste [`apps-script/Code.gs`](apps-script/Code.gs) into `Code.gs`.
+3. **Project Settings → Script properties** add:
+   - `PIN` — shared editor PIN
+   - `CALENDAR_ID` — same value as `VITE_GOOGLE_CALENDAR_ID`
+4. Make sure that Google account can edit the calendar.
+5. **Deploy → New deployment → Web app**
+   - Execute as: **Me**
+   - Who has access: **Anyone**
+6. Copy the Web App URL into `.env.local` / host env:
+
+```bash
+VITE_ADD_SERMON_URL=https://script.google.com/macros/s/.../exec
+```
+
+7. Restart `npm run dev` (or redeploy). The PIN stays only in Apps Script properties — never in the frontend env.
+
+While typing, known speakers/titles fill Sinhala from a local map. If the PIN is entered and no map hit, Apps Script can translate with `LanguageApp`. Editors can still edit the Sinhala fields before submit.
+
 ## Publish
 
 GitHub Pages is not required. Free static hosts all use the same build:
@@ -49,7 +72,7 @@ GitHub Pages is not required. Free static hosts all use the same build:
 
 [Netlify](https://app.netlify.com/start) and Cloudflare Pages work the same way if you prefer them.
 
-Put API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`, optional `VITE_YOUTUBE_API_KEY`), not in git. Vite inlines those at build time, so trigger a new deploy after you add them.
+Put API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`, optional `VITE_YOUTUBE_API_KEY`, optional `VITE_ADD_SERMON_URL`), not in git. Vite inlines those at build time, so trigger a new deploy after you add them.
 
 ## Event format
 
