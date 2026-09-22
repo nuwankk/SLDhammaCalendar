@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AddSermonForm } from './AddSermonForm'
+import { SearchSelect } from './SearchSelect'
 import { lookupSpeakerPhoto } from './data/speakers'
 import { venuesById } from './data/venues'
 import { loadSermons } from './lib/calendar'
@@ -45,7 +46,12 @@ type CalRange = 'week' | 'month'
 type LocationStatus = 'idle' | 'pending' | 'granted' | 'denied' | 'unavailable'
 
 const languages: Array<Language | 'all'> = ['all', 'Sinhala', 'English', 'Tamil', 'Pali', 'Mixed']
-const districtOptions: Array<District | 'all'> = ['all', ...districts]
+const districtOptions: Array<District | 'all'> = ['all', ...[...districts].sort((a, b) => a.localeCompare(b))]
+const whenOptions = [
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'week', label: 'This week' },
+  { value: 'month', label: 'This month' },
+] as const
 const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 function useNow(intervalMs = 30000) {
@@ -122,7 +128,7 @@ export default function App() {
       const attendance = inferAttendance(sermon)
       const venue = sermon.venueId ? venuesById[sermon.venueId] : undefined
       if (sermon.venueId && !venue) return []
-      if (!venue && attendance !== 'livestream') return []
+      if (!venue && attendance !== 'livestream' && !sermon.location) return []
       return [
         {
           ...sermon,
@@ -225,24 +231,29 @@ export default function App() {
 
       {view !== 'listen' && (
         <section className="filters" aria-label="Filters">
-          <FilterSelect
+          <SearchSelect
             label="Language"
             value={language}
-            options={languages}
+            options={languages.map((item) => ({
+              value: item,
+              label: item === 'all' ? 'All' : item,
+            }))}
             onChange={(value) => setLanguage(value as Language | 'all')}
           />
-          <FilterSelect
+          <SearchSelect
             label="District"
             value={district}
-            options={districtOptions}
-            labels={Object.fromEntries(districts.map((item) => [item, `${item} · ${districtSi[item]}`]))}
+            options={districtOptions.map((item) => ({
+              value: item,
+              label: item === 'all' ? 'All' : `${item} · ${districtSi[item]}`,
+              keywords: item === 'all' ? 'all' : `${item} ${districtSi[item]}`,
+            }))}
             onChange={(value) => setDistrict(value as District | 'all')}
           />
-          <FilterSelect
+          <SearchSelect
             label="When"
             value={when}
-            options={['upcoming', 'week', 'month']}
-            labels={{ upcoming: 'Upcoming', week: 'This week', month: 'This month' }}
+            options={whenOptions.map((item) => ({ value: item.value, label: item.label }))}
             onChange={(value) => setWhen(value as WhenFilter)}
           />
         </section>
@@ -537,33 +548,6 @@ function monthCells(year: number, month: number) {
   return cells
 }
 
-function FilterSelect({
-  label,
-  value,
-  options,
-  labels,
-  onChange,
-}: {
-  label: string
-  value: string
-  options: string[]
-  labels?: Record<string, string>
-  onChange: (value: string) => void
-}) {
-  return (
-    <label className="select">
-      <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {labels?.[option] ?? (option === 'all' ? 'All' : option)}
-          </option>
-        ))}
-      </select>
-    </label>
-  )
-}
-
 function SermonCard({
   sermon,
   now,
@@ -586,7 +570,7 @@ function SermonCard({
         <SpeakerPhotos sermon={sermon} />
         {sermon.distanceKm !== undefined ? (
           <p className="distance-badge">{formatDistance(sermon.distanceKm)}</p>
-        ) : inPerson ? (
+        ) : inPerson && sermon.venue ? (
           <button type="button" className="distance-badge ask-location" onClick={onRequestLocation}>
             Show distance
           </button>
@@ -731,8 +715,8 @@ function SermonSplit({
         lang="en"
         title={sermon.title}
         speaker={sermon.speaker}
-        venueName={sermon.venue?.name ?? 'Livestream'}
-        city={sermon.venue?.city ?? 'Online'}
+        venueName={sermon.venue?.name ?? sermon.location ?? 'Livestream'}
+        city={sermon.venue?.city ?? (sermon.location ? '' : 'Online')}
         district={sermon.venue?.district ?? ''}
         language={sermon.language}
         distance={sermon.distanceKm !== undefined ? formatDistance(sermon.distanceKm) : undefined}
@@ -742,8 +726,10 @@ function SermonSplit({
         lang="si"
         title={sermon.titleSi}
         speaker={sermon.speakerSi}
-        venueName={sermon.venue?.nameSi ?? sermon.venue?.name ?? 'සජීවී විකාශය'}
-        city={sermon.venue ? cityNameSi(sermon.venue.city) : 'අන්තර්ජාලය'}
+        venueName={
+          sermon.venue?.nameSi ?? sermon.venue?.name ?? sermon.location ?? 'සජීවී විකාශය'
+        }
+        city={sermon.venue ? cityNameSi(sermon.venue.city) : sermon.location ? '' : 'අන්තර්ජාලය'}
         district={sermon.venue ? districtSi[sermon.venue.district] : ''}
         language={languageSi[sermon.language]}
         distance={sermon.distanceKm !== undefined ? formatDistanceSi(sermon.distanceKm) : undefined}

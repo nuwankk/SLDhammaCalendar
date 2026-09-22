@@ -67,7 +67,7 @@ function fromGoogleEvent(event: CalendarEvent): Sermon | null {
     livestreamUrl,
     venueId: venue?.id,
   })
-  if (!venue && attendance !== 'livestream') return null
+  if (!venue && attendance !== 'livestream' && !event.location?.trim()) return null
 
   const { title, titleSi } = splitTitle(event.summary)
   const speaker = readField(description, 'Speaker') ?? 'Guest sermon'

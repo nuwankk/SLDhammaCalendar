@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { SearchSelect } from './SearchSelect'
+import { VenueSearchSelect, type VenueChoice } from './VenueSearchSelect'
 import { venues } from './data/venues'
 import { knownSpeakers, suggestSpeakerSi, suggestTitleSi } from './lib/sinhala'
 import {
@@ -55,8 +57,9 @@ export function AddSermonForm({
   const [titleSi, setTitleSi] = useState('')
   const [speaker, setSpeaker] = useState('')
   const [speakerSi, setSpeakerSi] = useState('')
-  const [venueId, setVenueId] = useState(venues[0]?.id ?? '')
-  const [customLocation, setCustomLocation] = useState('')
+  const [venueChoice, setVenueChoice] = useState<VenueChoice | null>(
+    venues[0] ? { kind: 'known', venueId: venues[0].id, label: venues[0].name } : null,
+  )
   const [start, setStart] = useState(defaultStartLocal)
   const [end, setEnd] = useState(() => defaultEndLocal(defaultStartLocal()))
   const [language, setLanguage] = useState<Language>('Sinhala')
@@ -72,10 +75,11 @@ export function AddSermonForm({
   const speakerTimer = useRef<number | null>(null)
 
   const location = useMemo(() => {
-    if (attendance === 'livestream' && !venueId) return customLocation.trim() || 'Online'
-    if (venueId === 'custom') return customLocation.trim()
-    return venues.find((venue) => venue.id === venueId)?.name ?? customLocation.trim()
-  }, [attendance, customLocation, venueId])
+    if (attendance === 'livestream') return venueChoice?.label.trim() || 'Online'
+    return venueChoice?.label.trim() || ''
+  }, [attendance, venueChoice])
+
+  const venueLabel = attendance === 'livestream' ? location || 'Online' : venueChoice?.label || ''
 
   function queueTranslate(
     kind: 'title' | 'speaker',
@@ -148,7 +152,7 @@ export function AddSermonForm({
     }
     if (attendance !== 'livestream' && !location) {
       setStatus('error')
-      setMessage('Choose a venue or enter a location.')
+      setMessage('Choose a venue from the list, Maps, or type one and pick “Use as typed”.')
       return
     }
     if ((attendance === 'livestream' || attendance === 'both') && !livestreamUrl.trim()) {
@@ -216,16 +220,12 @@ export function AddSermonForm({
             />
           </label>
 
-          <label className="select">
-            <span>Language</span>
-            <select value={language} onChange={(e) => setLanguage(e.target.value as Language)}>
-              {languages.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SearchSelect
+            label="Language"
+            value={language}
+            options={languages.map((item) => ({ value: item, label: item }))}
+            onChange={(value) => setLanguage(value as Language)}
+          />
 
           <label className="select">
             <span>Title (English)</span>
@@ -259,7 +259,7 @@ export function AddSermonForm({
               placeholder="Ven. Mankadawala Sudassana Thero"
             />
             <datalist id="known-speakers">
-              {knownSpeakers.map((name) => (
+              {[...knownSpeakers].sort((a, b) => a.localeCompare(b)).map((name) => (
                 <option key={name} value={name} />
               ))}
             </datalist>
@@ -278,47 +278,30 @@ export function AddSermonForm({
             />
           </label>
 
-          <label className="select">
-            <span>Attendance</span>
-            <select
-              value={attendance}
-              onChange={(e) => setAttendance(e.target.value as Attendance)}
-            >
-              {attendanceOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SearchSelect
+            label="Attendance"
+            value={attendance}
+            options={attendanceOptions.map((item) => ({ value: item.value, label: item.label }))}
+            onChange={(value) => setAttendance(value as Attendance)}
+          />
 
-          <label className="select">
-            <span>Venue</span>
-            <select
-              value={venueId}
-              onChange={(e) => setVenueId(e.target.value)}
-              disabled={attendance === 'livestream'}
-            >
-              {attendance === 'livestream' && <option value="">Online</option>}
-              {venues.map((venue) => (
-                <option key={venue.id} value={venue.id}>
-                  {venue.name}
-                </option>
-              ))}
-              <option value="custom">Other / type below</option>
-            </select>
-          </label>
-
-          {(venueId === 'custom' || attendance === 'livestream') && (
-            <label className="select add-span">
-              <span>Location text</span>
-              <input
-                value={customLocation}
-                onChange={(e) => setCustomLocation(e.target.value)}
-                placeholder={attendance === 'livestream' ? 'Online' : 'Temple or city name'}
-              />
-            </label>
-          )}
+          <div className="add-span">
+            <VenueSearchSelect
+              valueLabel={venueLabel}
+              onChoose={(choice) => setVenueChoice(choice)}
+            />
+            {attendance === 'livestream' && (
+              <p className="field-hint">Optional for livestream — leave blank/Online or pick a place.</p>
+            )}
+            {venueChoice?.kind === 'custom' && attendance !== 'livestream' && (
+              <p className="field-hint">Typed location will show on the site without distance.</p>
+            )}
+            {venueChoice?.kind === 'place' && (
+              <p className="field-hint">
+                Google Maps place — shown as entered; distance only if it matches a known venue.
+              </p>
+            )}
+          </div>
 
           <label className="select">
             <span>Starts</span>

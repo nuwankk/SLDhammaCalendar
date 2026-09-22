@@ -61,6 +61,8 @@ VITE_ADD_SERMON_URL=https://script.google.com/macros/s/.../exec
 
 While typing, known speakers/titles fill Sinhala from a local map. If the PIN is entered and no map hit, Apps Script can translate with `LanguageApp`. Editors can still edit the Sinhala fields before submit.
 
+Filters and Add-sermon dropdowns are searchable and sorted A–Z. For venues, typing also queries Google Places (Sri Lanka). Enable **Places API (New)** on the Google Cloud project; the calendar API key is reused, or set optional `VITE_GOOGLE_MAPS_API_KEY`. If Maps has no match, pick **Use as typed** — the site shows that location and skips distance.
+
 ## Publish
 
 GitHub Pages is not required. Free static hosts all use the same build:
@@ -72,7 +74,7 @@ GitHub Pages is not required. Free static hosts all use the same build:
 
 [Netlify](https://app.netlify.com/start) and Cloudflare Pages work the same way if you prefer them.
 
-Put API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`, optional `VITE_YOUTUBE_API_KEY`, optional `VITE_ADD_SERMON_URL`), not in git. Vite inlines those at build time, so trigger a new deploy after you add them.
+Put API keys in the host’s environment variables (`VITE_GOOGLE_CALENDAR_ID`, `VITE_GOOGLE_CALENDAR_API_KEY`, optional `VITE_YOUTUBE_API_KEY`, optional `VITE_GOOGLE_MAPS_API_KEY`, optional `VITE_ADD_SERMON_URL`), not in git. Vite inlines those at build time, so trigger a new deploy after you add them.
 
 ## Event format
 
